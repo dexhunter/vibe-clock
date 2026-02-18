@@ -17,6 +17,10 @@
   <img src="https://raw.githubusercontent.com/dexhunter/dexhunter/master/images/vibe-clock-hourly.svg" alt="Activity by Hour" width="400" />
   <img src="https://raw.githubusercontent.com/dexhunter/dexhunter/master/images/vibe-clock-weekly.svg" alt="Activity by Day of Week" width="400" />
 </p>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/dexhunter/dexhunter/master/images/vibe-clock-heatmap.svg" alt="Activity Heatmap" width="400" />
+  <img src="https://raw.githubusercontent.com/dexhunter/dexhunter/master/images/vibe-clock-bars.svg" alt="Project Sessions" width="400" />
+</p>
 
 ---
 
