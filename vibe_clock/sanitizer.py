@@ -29,8 +29,11 @@ def sanitize(stats: AgentStats, config: Config) -> AgentStats:
     """
     data = stats.model_copy(deep=True)
 
-    # Never push project details — only total time matters
+    # Strip project details entirely
     data.projects = []
+
+    # Filter out placeholder models
+    data.models = [m for m in data.models if m.model not in ("unknown", "<synthetic>")]
 
     _validate_no_pii(data)
     return data
