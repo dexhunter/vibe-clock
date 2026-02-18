@@ -7,12 +7,15 @@
 [![GitHub stars](https://img.shields.io/github/stars/dexhunter/vibe-clock?style=social)](https://github.com/dexhunter/vibe-clock)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/dexhunter/dexhunter/master/images/vibe-clock-card.svg" alt="Vibe Clock Stats" width="400" />
-  <img src="https://raw.githubusercontent.com/dexhunter/dexhunter/master/images/vibe-clock-donut.svg" alt="Model Usage" width="400" />
+  <img src="https://raw.githubusercontent.com/dexhunter/dexhunter/master/images/vibe-clock-card.svg" alt="Vibe Clock Stats" />
 </p>
 <p align="center">
-  <img src="https://raw.githubusercontent.com/dexhunter/dexhunter/master/images/vibe-clock-heatmap.svg" alt="Activity Heatmap" width="400" />
-  <img src="https://raw.githubusercontent.com/dexhunter/dexhunter/master/images/vibe-clock-bars.svg" alt="Projects" width="400" />
+  <img src="https://raw.githubusercontent.com/dexhunter/dexhunter/master/images/vibe-clock-donut.svg" alt="Model Usage" width="400" />
+  <img src="https://raw.githubusercontent.com/dexhunter/dexhunter/master/images/vibe-clock-token-bars.svg" alt="Token Usage by Model" width="400" />
+</p>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/dexhunter/dexhunter/master/images/vibe-clock-hourly.svg" alt="Activity by Hour" width="400" />
+  <img src="https://raw.githubusercontent.com/dexhunter/dexhunter/master/images/vibe-clock-weekly.svg" alt="Activity by Day of Week" width="400" />
 </p>
 
 ---
