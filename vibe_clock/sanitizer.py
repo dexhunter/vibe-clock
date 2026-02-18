@@ -29,8 +29,8 @@ def sanitize(stats: AgentStats, config: Config) -> AgentStats:
     """
     data = stats.model_copy(deep=True)
 
-    if config.privacy.anonymize_projects:
-        data.projects = _anonymize_projects(data.projects)
+    # Never push project details — only total time matters
+    data.projects = []
 
     _validate_no_pii(data)
     return data

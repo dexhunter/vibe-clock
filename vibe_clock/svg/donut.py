@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from html import escape
 
 from ..models import AgentStats
 
@@ -19,7 +20,8 @@ def render_donut(stats: AgentStats, theme: str = "dark") -> str:
     muted = "#8b949e" if theme == "dark" else "#656d76"
     title_color = "#58a6ff" if theme == "dark" else "#0969da"
 
-    models = stats.models
+    # Filter out placeholder/unknown models
+    models = [m for m in stats.models if m.model not in ("unknown", "<synthetic>")]
     if not models:
         return _empty_donut(bg, border, text_color, title_color)
 
@@ -53,10 +55,11 @@ def render_donut(stats: AgentStats, theme: str = "dark") -> str:
         color = _PALETTE[i % len(_PALETTE)]
         y = 55 + i * 22
         pct = m.session_count / total * 100 if total else 0
+        name = escape(m.model)
         legend_items.append(
             f'<rect x="260" y="{y - 8}" width="10" height="10" rx="2" fill="{color}"/>'
             f'<text x="276" y="{y}" fill="{text_color}" font-size="11">'
-            f'{m.model}</text>'
+            f'{name}</text>'
             f'<text x="276" y="{y + 13}" fill="{muted}" font-size="9">'
             f'{m.session_count} ({pct:.0f}%)</text>'
         )
