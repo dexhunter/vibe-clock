@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import sys
 from pathlib import Path
 
@@ -152,7 +151,7 @@ def render(chart_type: str, output_dir: str, json_path: str | None, theme: str |
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
 
-    types = list(SVG_RENDERERS.keys()) if chart_type == "all" else [chart_type]
+    types = list(SVG_RENDERERS.keys()) if chart_type == "all" else [t.strip() for t in chart_type.split(",")]
     for t in types:
         if t not in SVG_RENDERERS:
             console.print(f"[red]Unknown chart type: {t}[/red]")

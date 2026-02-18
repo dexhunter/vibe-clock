@@ -1,5 +1,6 @@
 name: 'Vibe Clock'
-description: 'Generate AI coding agent usage SVGs from a vibe-clock gist'
+description: 'Generate AI coding agent usage SVGs for your GitHub profile — WakaTime for AI agents'
+author: 'dexhunter'
 branding:
   icon: 'clock'
   color: 'blue'

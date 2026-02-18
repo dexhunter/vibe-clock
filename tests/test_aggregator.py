@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 from vibe_clock.aggregator import aggregate
 from vibe_clock.config import Config

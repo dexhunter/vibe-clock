@@ -40,7 +40,6 @@ def render_card(stats: AgentStats, theme: str = "dark") -> str:
 
     row_svgs = []
     for i, (label, value) in enumerate(rows):
-        y = 52 + i * 22
         col_x = 20 if i < 4 else 270
         row_y = 52 + (i % 4) * 22
         row_svgs.append(

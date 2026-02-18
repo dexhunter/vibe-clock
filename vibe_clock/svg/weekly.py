@@ -27,7 +27,6 @@ def render_weekly(stats: AgentStats, theme: str = "dark") -> str:
         dow_minutes[dow] += d.total_minutes
 
     max_sessions = max(dow_sessions.values()) if dow_sessions else 1
-    max_minutes = max(dow_minutes.values()) if dow_minutes else 1
 
     width = 495
     chart_top = 45

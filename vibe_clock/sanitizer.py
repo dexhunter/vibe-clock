@@ -6,7 +6,6 @@ Ensures no PII, file paths, or project names leave the machine.
 from __future__ import annotations
 
 import getpass
-import os
 import re
 import string
 from pathlib import Path

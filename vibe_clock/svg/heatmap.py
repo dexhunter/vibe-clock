@@ -21,7 +21,6 @@ def render_heatmap(stats: AgentStats, theme: str = "dark") -> str:
     bg = "#0d1117" if theme == "dark" else "#ffffff"
     border = "#30363d" if theme == "dark" else "#d0d7de"
     text_color = "#8b949e" if theme == "dark" else "#656d76"
-    title_color = "#58a6ff" if theme == "dark" else "#0969da"
 
     # Build date -> session count map
     date_map: dict[date, int] = {}
