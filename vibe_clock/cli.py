@@ -223,23 +223,19 @@ def push(dry_run: bool, days: int | None) -> None:
         "Accept": "application/vnd.github+json",
     }
 
+    client = httpx.Client(headers=headers, timeout=30, trust_env=False)
     gist_id = config.github.gist_id
     if gist_id:
-        # Update existing gist
-        resp = httpx.patch(
+        resp = client.patch(
             f"https://api.github.com/gists/{gist_id}",
             json=gist_data,
-            headers=headers,
-            timeout=30,
         )
     else:
-        # Create new gist
-        resp = httpx.post(
+        resp = client.post(
             "https://api.github.com/gists",
             json=gist_data,
-            headers=headers,
-            timeout=30,
         )
+    client.close()
 
     if resp.status_code not in (200, 201):
         console.print(f"[red]GitHub API error ({resp.status_code}): {resp.text}[/red]")

@@ -71,9 +71,10 @@ def load_config() -> Config:
 
     config = Config(**data)
 
-    # Environment variable overrides
-    if token := os.environ.get("GITHUB_TOKEN"):
-        config.github.token = token
+    # Environment variable fallbacks (TOML takes precedence if set)
+    if not config.github.token:
+        if token := os.environ.get("GITHUB_TOKEN"):
+            config.github.token = token
     if gist_id := os.environ.get("VIBE_CLOCK_GIST_ID"):
         config.github.gist_id = gist_id
     if days := os.environ.get("VIBE_CLOCK_DAYS"):
