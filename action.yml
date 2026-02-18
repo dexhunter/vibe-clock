@@ -1,0 +1,62 @@
+name: 'Vibe Clock'
+description: 'Generate AI coding agent usage SVGs from a vibe-clock gist'
+branding:
+  icon: 'clock'
+  color: 'blue'
+
+inputs:
+  gist_id:
+    description: 'GitHub Gist ID containing vibe-clock-data.json'
+    required: true
+  theme:
+    description: 'Theme: dark or light'
+    required: false
+    default: 'dark'
+  output_dir:
+    description: 'Directory to write SVG files'
+    required: false
+    default: './images'
+  chart_types:
+    description: 'Chart types to generate (comma-separated or "all")'
+    required: false
+    default: 'all'
+  commit:
+    description: 'Auto-commit generated SVGs'
+    required: false
+    default: 'true'
+  commit_message:
+    description: 'Commit message'
+    required: false
+    default: 'chore: update vibe-clock stats'
+
+runs:
+  using: 'composite'
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install vibe-clock
+      shell: bash
+      run: pip install git+https://github.com/dexhunter/vibe-clock.git
+
+    - name: Fetch stats from gist
+      shell: bash
+      run: |
+        curl -sf "https://gist.githubusercontent.com/${{ github.repository_owner }}/${{ inputs.gist_id }}/raw/vibe-clock-data.json" -o /tmp/vibe-clock-data.json
+
+    - name: Generate SVGs
+      shell: bash
+      run: |
+        mkdir -p ${{ inputs.output_dir }}
+        vibe-clock render --from-json /tmp/vibe-clock-data.json --type ${{ inputs.chart_types }} --theme ${{ inputs.theme }} --output ${{ inputs.output_dir }}
+
+    - name: Commit and push
+      if: inputs.commit == 'true'
+      shell: bash
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add ${{ inputs.output_dir }}
+        git diff --staged --quiet || git commit -m "${{ inputs.commit_message }}"
+        git push
