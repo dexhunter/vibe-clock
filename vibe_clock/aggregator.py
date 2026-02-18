@@ -97,6 +97,9 @@ def aggregate(sessions: list[Session], config: Config) -> AgentStats:
         if dur > longest_minutes:
             longest_minutes = dur
 
+    # Build hourly distribution (24 slots)
+    hourly = [hour_counts.get(h, 0) for h in range(24)]
+
     # Find peak hour
     peak_hour = max(hour_counts, key=hour_counts.get) if hour_counts else 0  # type: ignore[arg-type]
 
@@ -158,6 +161,7 @@ def aggregate(sessions: list[Session], config: Config) -> AgentStats:
         favorite_model=favorite,
         peak_hour=peak_hour,
         longest_session_minutes=round(longest_minutes, 1),
+        hourly=hourly,
         daily=daily,
         models=models,
         projects=projects,

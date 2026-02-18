@@ -53,11 +53,11 @@ def render_card(stats: AgentStats, theme: str = "dark") -> str:
     body = "\n    ".join(row_svgs)
     return f'''<svg xmlns="http://www.w3.org/2000/svg" width="495" height="155" viewBox="0 0 495 155">
   <rect width="493" height="153" x="1" y="1" rx="4.5" fill="{c["bg"]}" stroke="{c["border"]}"/>
-  <text x="20" y="30" fill="{c["title"]}" font-size="16" font-weight="700" font-family="Segoe UI, Ubuntu, sans-serif">
+  <text x="20" y="30" fill="{c["title"]}" font-size="16" font-weight="700" font-family="Arial, Helvetica, sans-serif">
     ⏱ Vibe Clock Stats
   </text>
   <line x1="20" y1="38" x2="475" y2="38" stroke="{c["border"]}" stroke-width="0.5"/>
-  <g font-family="Segoe UI, Ubuntu, monospace">
+  <g font-family="Courier New, Courier, monospace">
     {body}
   </g>
 </svg>'''

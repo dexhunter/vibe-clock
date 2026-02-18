@@ -77,6 +77,7 @@ class AgentStats(BaseModel):
     favorite_model: str = ""
     peak_hour: int = 0  # 0-23
     longest_session_minutes: float = 0.0
+    hourly: list[int] = Field(default_factory=lambda: [0] * 24)  # sessions per hour 0-23
     daily: list[DailyActivity] = Field(default_factory=list)
     models: list[ModelBreakdown] = Field(default_factory=list)
     projects: list[ProjectBreakdown] = Field(default_factory=list)

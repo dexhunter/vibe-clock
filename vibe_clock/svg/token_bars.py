@@ -66,10 +66,10 @@ def render_token_bars(stats: AgentStats, theme: str = "dark") -> str:
 
     return f'''<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">
   <rect width="{width - 2}" height="{height - 2}" x="1" y="1" rx="4.5" fill="{bg}" stroke="{border}"/>
-  <text x="20" y="28" fill="{title_color}" font-size="14" font-weight="700" font-family="Segoe UI, Ubuntu, sans-serif">
+  <text x="20" y="28" fill="{title_color}" font-size="14" font-weight="700" font-family="Arial, Helvetica, sans-serif">
     Token Usage by Model
   </text>
-  <g font-family="Segoe UI, Ubuntu, monospace">
+  <g font-family="Courier New, Courier, monospace">
     {rows_str}
   </g>
 </svg>'''
@@ -79,5 +79,5 @@ def _empty(bg: str, border: str, text: str, title: str) -> str:
     return f'''<svg xmlns="http://www.w3.org/2000/svg" width="495" height="200" viewBox="0 0 495 200">
   <rect width="493" height="198" x="1" y="1" rx="4.5" fill="{bg}" stroke="{border}"/>
   <text x="247" y="100" text-anchor="middle" fill="{text}" font-size="14"
-        font-family="Segoe UI, Ubuntu, sans-serif">No token data</text>
+        font-family="Arial, Helvetica, sans-serif">No token data</text>
 </svg>'''

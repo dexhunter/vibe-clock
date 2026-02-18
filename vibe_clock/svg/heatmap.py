@@ -120,7 +120,7 @@ def render_heatmap(stats: AgentStats, theme: str = "dark") -> str:
 
     return f'''<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">
   <rect width="{width - 2}" height="{height - 2}" x="1" y="1" rx="4.5" fill="{bg}" stroke="{border}"/>
-  <g font-family="Segoe UI, Ubuntu, sans-serif">
+  <g font-family="Arial, Helvetica, sans-serif">
     {months_str}
     {days_str}
     {cells_str}

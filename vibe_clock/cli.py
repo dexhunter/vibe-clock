@@ -20,7 +20,9 @@ from .svg.bars import render_bars
 from .svg.card import render_card
 from .svg.donut import render_donut
 from .svg.heatmap import render_heatmap
+from .svg.hourly import render_hourly
 from .svg.token_bars import render_token_bars
+from .svg.weekly import render_weekly
 
 console = Console()
 
@@ -30,6 +32,8 @@ SVG_RENDERERS = {
     "donut": ("vibe-clock-donut.svg", render_donut),
     "bars": ("vibe-clock-bars.svg", render_bars),
     "token_bars": ("vibe-clock-token-bars.svg", render_token_bars),
+    "hourly": ("vibe-clock-hourly.svg", render_hourly),
+    "weekly": ("vibe-clock-weekly.svg", render_weekly),
 }
 
 
