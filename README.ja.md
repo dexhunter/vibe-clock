@@ -161,6 +161,8 @@ vibe-clock push  ──▶  Gist（サニタイズ済みJSON）
 | `vibe-clock export` | 生の統計データをJSONでエクスポート |
 | `vibe-clock push` | サニタイズされた統計データをGitHub gistにプッシュ |
 | `vibe-clock push --dry-run` | プッシュされる内容をプレビュー |
+| `vibe-clock schedule` | 定期プッシュを自動スケジュール（launchd / systemd / cron） |
+| `vibe-clock unschedule` | スケジュールされたプッシュタスクを削除 |
 
 ## 設定
 

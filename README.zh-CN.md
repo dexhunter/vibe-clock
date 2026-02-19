@@ -161,6 +161,8 @@ vibe-clock push  ──▶  Gist（清洗后的 JSON）
 | `vibe-clock export` | 导出原始统计数据为 JSON |
 | `vibe-clock push` | 推送清洗后的统计数据到 GitHub gist |
 | `vibe-clock push --dry-run` | 预览将要推送的内容 |
+| `vibe-clock schedule` | 自动定时推送（launchd / systemd / cron） |
+| `vibe-clock unschedule` | 移除定时推送任务 |
 
 ## 配置
 

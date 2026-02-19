@@ -161,6 +161,8 @@ vibe-clock push  ──▶  Gist (sanitized JSON)
 | `vibe-clock export` | Export raw stats as JSON |
 | `vibe-clock push` | Push sanitized stats to a GitHub gist |
 | `vibe-clock push --dry-run` | Preview what would be pushed |
+| `vibe-clock schedule` | Auto-schedule periodic push (launchd / systemd / cron) |
+| `vibe-clock unschedule` | Remove the scheduled push task |
 
 ## Configuration
 

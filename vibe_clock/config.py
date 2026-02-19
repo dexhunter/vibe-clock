@@ -37,6 +37,13 @@ class PrivacyConfig(BaseModel):
     anonymize_projects: bool = True
 
 
+class ScheduleConfig(BaseModel):
+    enabled: bool = False
+    interval: str = "daily"
+    time: str = "00:00"
+    backend: str = ""
+
+
 class Config(BaseModel):
     default_days: int = 30
     theme: str = "dark"
@@ -46,6 +53,7 @@ class Config(BaseModel):
         default_factory=lambda: ["claude_code", "codex", "opencode"]
     )
     privacy: PrivacyConfig = Field(default_factory=PrivacyConfig)
+    schedule: ScheduleConfig = Field(default_factory=ScheduleConfig)
 
 
 def load_config() -> Config:
@@ -69,6 +77,8 @@ def load_config() -> Config:
             data["enabled_agents"] = raw["agents"]["enabled"]
         if "privacy" in raw:
             data["privacy"] = raw["privacy"]
+        if "schedule" in raw:
+            data["schedule"] = raw["schedule"]
 
     config = Config(**data)
 
@@ -109,6 +119,12 @@ def save_config(config: Config) -> None:
         f'exclude_projects = {config.privacy.exclude_projects}',
         f'exclude_date_ranges = {config.privacy.exclude_date_ranges}',
         f'anonymize_projects = {"true" if config.privacy.anonymize_projects else "false"}',
+        "",
+        "[schedule]",
+        f'enabled = {"true" if config.schedule.enabled else "false"}',
+        f'interval = "{config.schedule.interval}"',
+        f'time = "{config.schedule.time}"',
+        f'backend = "{config.schedule.backend}"',
     ]
     CONFIG_PATH.write_text("\n".join(lines) + "\n")
     os.chmod(CONFIG_PATH, stat.S_IRUSR | stat.S_IWUSR)  # 0600

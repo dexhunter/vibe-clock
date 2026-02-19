@@ -289,3 +289,75 @@ def push(dry_run: bool, days: int | None) -> None:
         console.print(f"[green]Updated gist: {gist_id}[/green]")
 
     console.print(f"[dim]{result.get('html_url', '')}[/dim]")
+
+
+@cli.command()
+@click.option(
+    "--interval",
+    type=click.Choice(["hourly", "daily", "weekly"]),
+    default="daily",
+    help="How often to push stats.",
+)
+@click.option("--time", "run_time", default="00:00", help="Time of day to run (HH:MM, 24h). Ignored for hourly.")
+@click.option("--force", is_flag=True, help="Overwrite existing schedule.")
+def schedule(interval: str, run_time: str, force: bool) -> None:
+    """Schedule automatic vibe-clock push."""
+    import re
+
+    from .scheduler import get_scheduler, resolve_binary
+
+    config = load_config()
+
+    if not config.github.token:
+        console.print("[red]No GitHub token configured. Run 'vibe-clock init' first.[/red]")
+        sys.exit(1)
+
+    if not re.match(r"^\d{1,2}:\d{2}$", run_time):
+        console.print("[red]Invalid time format. Use HH:MM (e.g. 08:00, 23:30).[/red]")
+        sys.exit(1)
+
+    scheduler = get_scheduler()
+
+    if scheduler.is_scheduled() and not force:
+        console.print(
+            f"[yellow]Already scheduled via {scheduler.backend_name}. "
+            f"Use --force to overwrite.[/yellow]"
+        )
+        return
+
+    if scheduler.is_scheduled():
+        scheduler.unschedule()
+
+    binary = resolve_binary()
+    verify_cmd = scheduler.schedule(binary, interval, run_time)
+
+    config.schedule.enabled = True
+    config.schedule.interval = interval
+    config.schedule.time = run_time
+    config.schedule.backend = scheduler.backend_name
+    save_config(config)
+
+    time_msg = "" if interval == "hourly" else f" at {run_time}"
+    console.print(f"[green]Scheduled {interval} push{time_msg} via {scheduler.backend_name}.[/green]")
+    console.print(f"[dim]Verify: {verify_cmd}[/dim]")
+
+
+@cli.command()
+def unschedule() -> None:
+    """Remove scheduled vibe-clock push."""
+    from .scheduler import get_scheduler
+
+    config = load_config()
+    scheduler = get_scheduler()
+
+    if not scheduler.is_scheduled():
+        console.print("[yellow]No active schedule found.[/yellow]")
+        return
+
+    scheduler.unschedule()
+
+    config.schedule.enabled = False
+    config.schedule.backend = ""
+    save_config(config)
+
+    console.print(f"[green]Unscheduled vibe-clock push ({scheduler.backend_name}).[/green]")
