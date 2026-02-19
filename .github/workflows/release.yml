@@ -28,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          repository: dexhunter/homebrew-vibe
+          repository: dexhunter/homebrew-tap
           token: ${{ secrets.HOMEBREW_COMMITTER_TOKEN }}
 
       - name: Update formula from PyPI
