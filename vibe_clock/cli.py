@@ -6,13 +6,16 @@ import sys
 from pathlib import Path
 
 import click
+import rich.box as box
 from rich.console import Console
+from rich.panel import Panel
 from rich.table import Table
+from rich.text import Text
 
 from . import __version__
 from .aggregator import aggregate
 from .collectors import get_collectors
-from .formatting import format_number
+from .formatting import format_bar, format_hourly_chart, format_hours, format_number
 from .config import Config, load_config, save_config
 from .models import AgentStats
 from .sanitizer import preview, sanitize
@@ -101,32 +104,139 @@ def summary(days: int | None) -> None:
 
     stats = aggregate(all_sessions, config)
 
-    # Display summary
-    table = Table(title=f"Vibe Clock — Last {config.default_days} Days")
-    table.add_column("Metric", style="cyan")
-    table.add_column("Value", style="bold")
+    # Header
+    header = Text()
+    header.append("  ⏱  V I B E   C L O C K", style="bold cyan")
+    header.append(f"  Last {config.default_days} Days", style="dim")
+    console.print(Panel(header, box=box.ROUNDED, border_style="cyan"))
 
-    hours = stats.total_minutes / 60
-    table.add_row("Total Time", f"{hours:.1f} hrs")
-    table.add_row("Sessions", str(stats.total_sessions))
-    table.add_row("Messages", format_number(stats.total_messages))
-    table.add_row("Tokens", format_number(stats.total_tokens.total))
-    table.add_row("Favorite Model", stats.favorite_model or "—")
-    table.add_row("Peak Hour", f"{stats.peak_hour}:00")
-    table.add_row("Active Agents", ", ".join(stats.active_agents) or "—")
-    table.add_row("Longest Session", f"{stats.longest_session_minutes:.0f} min")
-    console.print(table)
+    # Overview
+    _print_overview(stats)
 
-    # Model breakdown
+    # Token Breakdown
+    if stats.total_tokens.total > 0:
+        _print_token_breakdown(stats)
+
+    # Hourly Activity
+    if any(stats.hourly):
+        _print_hourly(stats)
+
+    # Models
     if stats.models:
-        mt = Table(title="Models")
-        mt.add_column("Model")
-        mt.add_column("Sessions", justify="right")
-        mt.add_column("Messages", justify="right")
-        mt.add_column("Tokens", justify="right")
-        for m in stats.models:
-            mt.add_row(m.model, str(m.session_count), str(m.message_count), format_number(m.tokens.total))
-        console.print(mt)
+        _print_models(stats)
+
+    # Projects
+    if stats.projects:
+        _print_projects(stats)
+
+    # Footer
+    console.print(f"[dim]Generated {stats.generated_at:%Y-%m-%d %H:%M} UTC[/dim]")
+
+
+def _print_overview(stats: "AgentStats") -> None:
+    t = Table(show_header=False, box=None, padding=(0, 2))
+    t.add_column(style="cyan")
+    t.add_column(style="bold white")
+    t.add_column(style="cyan")
+    t.add_column(style="bold white")
+    t.add_row(
+        "⏱  Total Time",
+        format_hours(stats.total_minutes),
+        "🤖 Favorite Model",
+        stats.favorite_model or "—",
+    )
+    t.add_row(
+        "💬 Sessions",
+        str(stats.total_sessions),
+        "🕐 Peak Hour",
+        f"{stats.peak_hour}:00",
+    )
+    t.add_row(
+        "📨 Messages",
+        format_number(stats.total_messages),
+        "🔥 Longest Session",
+        f"{stats.longest_session_minutes:.0f} min",
+    )
+    t.add_row(
+        "🔢 Tokens",
+        format_number(stats.total_tokens.total),
+        "🛠  Active Agents",
+        ", ".join(stats.active_agents) or "—",
+    )
+    console.print(Panel(t, title="Overview", box=box.ROUNDED, border_style="blue"))
+
+
+def _print_token_breakdown(stats: "AgentStats") -> None:
+    total = stats.total_tokens.total
+    parts = [
+        ("Input", stats.total_tokens.input_tokens, "cyan"),
+        ("Output", stats.total_tokens.output_tokens, "green"),
+        ("Cache R", stats.total_tokens.cache_read_tokens, "yellow"),
+        ("Cache W", stats.total_tokens.cache_write_tokens, "magenta"),
+    ]
+    t = Table(show_header=False, box=None, padding=(0, 1))
+    t.add_column(style="bold", width=10)
+    t.add_column(width=50)
+    t.add_column(justify="right", width=8)
+    t.add_column(justify="right", width=6)
+    for label, value, color in parts:
+        pct = (value / total * 100) if total > 0 else 0
+        bar = format_bar(value, total, width=30, filled_style=color)
+        t.add_row(label, bar, format_number(value), f"({pct:.0f}%)")
+    console.print(Panel(t, title="Token Breakdown", box=box.ROUNDED, border_style="blue"))
+
+
+def _print_hourly(stats: "AgentStats") -> None:
+    chart = format_hourly_chart(stats.hourly, height=6, peak_hour=stats.peak_hour)
+    console.print(Panel(chart, title="Hourly Activity", box=box.ROUNDED, border_style="blue"))
+
+
+def _print_models(stats: "AgentStats") -> None:
+    filtered = [
+        m for m in stats.models if m.model not in ("unknown", "<synthetic>")
+    ][:8]
+    if not filtered:
+        return
+    total_tokens = sum(m.tokens.total for m in filtered)
+    t = Table(box=None, padding=(0, 1))
+    t.add_column("Model", style="bold")
+    t.add_column("Sessions", justify="right")
+    t.add_column("Messages", justify="right")
+    t.add_column("Tokens", justify="right")
+    t.add_column("Share", width=22)
+    for m in filtered:
+        share = (m.tokens.total / total_tokens * 100) if total_tokens > 0 else 0
+        bar = format_bar(m.tokens.total, total_tokens, width=14, filled_style="cyan")
+        t.add_row(
+            m.model,
+            f"{m.session_count:,}",
+            f"{m.message_count:,}",
+            format_number(m.tokens.total),
+            f"{bar} {share:.0f}%",
+        )
+    console.print(Panel(t, title="Models", box=box.ROUNDED, border_style="blue"))
+
+
+def _print_projects(stats: "AgentStats") -> None:
+    projects = stats.projects[:8]
+    if not projects:
+        return
+    t = Table(box=None, padding=(0, 1))
+    t.add_column("Project", style="bold")
+    t.add_column("Agent")
+    t.add_column("Time", justify="right")
+    t.add_column("Sessions", justify="right")
+    t.add_column("Tokens", justify="right")
+    for p in projects:
+        name = p.project.split("/")[-1][:24]
+        t.add_row(
+            name,
+            p.agent,
+            format_hours(p.total_minutes),
+            str(p.session_count),
+            format_number(p.tokens.total),
+        )
+    console.print(Panel(t, title="Projects", box=box.ROUNDED, border_style="blue"))
 
 
 @cli.command()
