@@ -7,6 +7,7 @@ on:
 
 permissions:
   id-token: write
+  contents: write
 
 jobs:
   publish:
@@ -22,8 +23,36 @@ jobs:
       - name: Publish to PyPI
         run: uv publish --trusted-publishing always
 
-  bump-tap:
+  build-binary:
     needs: publish
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Install deps + PyInstaller
+        run: |
+          uv venv
+          uv pip install . pyinstaller
+
+      - name: Build binary
+        run: |
+          source .venv/bin/activate
+          pyinstaller vibe-clock.spec
+
+      - name: Create tarball
+        run: |
+          cd dist
+          tar czf vibe-clock-darwin-arm64.tar.gz vibe-clock
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/vibe-clock-darwin-arm64.tar.gz
+
+  bump-tap:
+    needs: build-binary
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,33 +60,40 @@ jobs:
           repository: dexhunter/homebrew-tap
           token: ${{ secrets.HOMEBREW_COMMITTER_TOKEN }}
 
-      - name: Update formula from PyPI
+      - name: Update formula with binary URL and SHA
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_COMMITTER_TOKEN }}
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          sleep 30
-          python3 - "$VERSION" <<'PYEOF'
-          import json, re, sys, urllib.request
-          version = sys.argv[1]
-          with urllib.request.urlopen(f"https://pypi.org/pypi/vibe-clock/{version}/json") as r:
-              data = json.loads(r.read())
-          for f in data["urls"]:
-              if f["packagetype"] == "sdist":
-                  new_url, new_sha = f["url"], f["digests"]["sha256"]
-                  break
+          TARBALL_URL="https://github.com/dexhunter/vibe-clock/releases/download/${GITHUB_REF_NAME}/vibe-clock-darwin-arm64.tar.gz"
+
+          # Download tarball and compute SHA256
+          curl -sL -o /tmp/vibe-clock.tar.gz "$TARBALL_URL"
+          SHA256=$(sha256sum /tmp/vibe-clock.tar.gz | cut -d' ' -f1)
+
+          python3 - "$VERSION" "$TARBALL_URL" "$SHA256" <<'PYEOF'
+          import re, sys
+          version, new_url, new_sha = sys.argv[1], sys.argv[2], sys.argv[3]
           formula = open("Formula/vibe-clock.rb").read()
-          # Only replace the first (top-level) url and sha256, not resource blocks
           formula = re.sub(
-              r'(^  url )".*"',
+              r'(  url )".*"',
               rf'\1"{new_url}"',
-              formula, count=1, flags=re.MULTILINE,
+              formula, count=1,
           )
           formula = re.sub(
-              r'(^  sha256 )"[a-f0-9]+"',
+              r'(  sha256 )"[a-f0-9]+"',
               rf'\1"{new_sha}"',
-              formula, count=1, flags=re.MULTILINE,
+              formula, count=1,
+          )
+          formula = re.sub(
+              r'(  version )".*"',
+              rf'\1"{version}"',
+              formula, count=1,
           )
           open("Formula/vibe-clock.rb", "w").write(formula)
-          print(f"Updated formula to {version}: {new_url}")
+          print(f"Updated formula to {version}")
+          print(f"  URL: {new_url}")
+          print(f"  SHA: {new_sha}")
           PYEOF
 
       - name: Commit and push
