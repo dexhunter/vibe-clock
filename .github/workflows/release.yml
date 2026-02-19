@@ -1,0 +1,69 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Build
+        run: uv build
+
+      - name: Publish to PyPI
+        run: uv publish --trusted-publishing always
+
+  bump-tap:
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: dexhunter/homebrew-tap
+          token: ${{ secrets.HOMEBREW_COMMITTER_TOKEN }}
+
+      - name: Update formula from PyPI
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          # Wait for PyPI to index the new release
+          sleep 30
+          # Fetch sdist URL and SHA from PyPI JSON API
+          PYPI_JSON=$(curl -sf "https://pypi.org/pypi/vibe-clock/${VERSION}/json")
+          SDIST_URL=$(echo "$PYPI_JSON" | python3 -c "
+          import json, sys
+          data = json.load(sys.stdin)
+          for f in data['urls']:
+              if f['packagetype'] == 'sdist':
+                  print(f['url'])
+                  break
+          ")
+          SDIST_SHA=$(echo "$PYPI_JSON" | python3 -c "
+          import json, sys
+          data = json.load(sys.stdin)
+          for f in data['urls']:
+              if f['packagetype'] == 'sdist':
+                  print(f['digests']['sha256'])
+                  break
+          ")
+          # Update formula
+          sed -i "s|url \".*\"|url \"${SDIST_URL}\"|" Formula/vibe-clock.rb
+          sed -i "s|sha256 \"[a-f0-9]*\"|sha256 \"${SDIST_SHA}\"|" Formula/vibe-clock.rb
+
+      - name: Commit and push
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/vibe-clock.rb
+          git diff --cached --quiet && exit 0
+          git commit -m "vibe-clock ${VERSION}"
+          git push
