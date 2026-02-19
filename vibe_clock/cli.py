@@ -98,7 +98,7 @@ def summary(days: int | None) -> None:
 
     all_sessions = []
     for c in collectors:
-        sessions = c.collect()
+        sessions = c.collect(days=config.default_days)
         console.print(f"  [dim]{c.agent_name}: {len(sessions)} sessions[/dim]")
         all_sessions.extend(sessions)
 
@@ -254,7 +254,7 @@ def status(days: int | None) -> None:
 
     all_sessions = []
     for c in collectors:
-        all_sessions.extend(c.collect())
+        all_sessions.extend(c.collect(days=config.default_days))
 
     stats = aggregate(all_sessions, config)
     hours = stats.total_minutes / 60
@@ -286,7 +286,7 @@ def render(chart_type: str, output_dir: str, json_path: str | None, theme: str |
         collectors = get_collectors(config)
         all_sessions = []
         for c in collectors:
-            all_sessions.extend(c.collect())
+            all_sessions.extend(c.collect(days=config.default_days))
         stats = aggregate(all_sessions, config)
         stats = sanitize(stats, config)
 
@@ -317,7 +317,7 @@ def export(output: str, days: int | None) -> None:
     collectors = get_collectors(config)
     all_sessions = []
     for c in collectors:
-        all_sessions.extend(c.collect())
+        all_sessions.extend(c.collect(days=config.default_days))
 
     stats = aggregate(all_sessions, config)
     Path(output).write_text(stats.model_dump_json(indent=2))
@@ -344,7 +344,7 @@ def push(dry_run: bool, days: int | None) -> None:
     collectors = get_collectors(config)
     all_sessions = []
     for c in collectors:
-        sessions = c.collect()
+        sessions = c.collect(days=config.default_days)
         console.print(f"  [dim]{c.agent_name}: {len(sessions)} sessions[/dim]")
         all_sessions.extend(sessions)
 
@@ -370,7 +370,7 @@ def push(dry_run: bool, days: int | None) -> None:
         "Accept": "application/vnd.github+json",
     }
 
-    client = httpx.Client(headers=headers, timeout=30, trust_env=False)
+    client = httpx.Client(headers=headers, timeout=30)
     gist_id = config.github.gist_id
     if gist_id:
         resp = client.patch(
