@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import stat
 import sys
 from pathlib import Path
 
@@ -86,6 +87,7 @@ def load_config() -> Config:
 def save_config(config: Config) -> None:
     """Write config back to TOML file."""
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    os.chmod(CONFIG_DIR, stat.S_IRWXU)  # 0700
     lines = [
         "[general]",
         f'default_days = {config.default_days}',
@@ -109,3 +111,4 @@ def save_config(config: Config) -> None:
         f'anonymize_projects = {"true" if config.privacy.anonymize_projects else "false"}',
     ]
     CONFIG_PATH.write_text("\n".join(lines) + "\n")
+    os.chmod(CONFIG_PATH, stat.S_IRUSR | stat.S_IWUSR)  # 0600

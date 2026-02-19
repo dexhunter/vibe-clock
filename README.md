@@ -1,5 +1,7 @@
 # vibe-clock
 
+[简体中文](README.zh-CN.md) | [日本語](README.ja.md) | [Español](README.es.md)
+
 **WakaTime for AI coding agents.** Track usage across Claude Code, Codex, and OpenCode — then show it off on your GitHub profile.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -36,7 +38,7 @@ vibe-clock summary       # see your stats in the terminal
 2. **Projects are anonymized** — real names become "Project A", "Project B"
 3. **`--dry-run` lets you inspect** exactly what will be pushed before it goes anywhere
 
-**What is pushed** (to your own private gist):
+**What is pushed** (to your own public gist):
 - Session counts, message counts, durations
 - Token usage totals per model
 - Model and agent names
@@ -70,13 +72,14 @@ Add to your `<username>/<username>` profile repo to auto-update SVGs daily.
 ### 1. Push your stats
 
 ```bash
-vibe-clock push          # creates a private gist with sanitized data
+vibe-clock push          # creates a public gist with sanitized data
 # Note the gist ID printed
 ```
 
 ### 2. Add the secret
 
-In your profile repo: **Settings → Secrets → Actions** → add `VIBE_CLOCK_GIST_ID`
+In your profile repo: **Settings → Secrets → Actions** → add:
+- `VIBE_CLOCK_GIST_ID` — the gist ID from step 1
 
 ### 3. Create the workflow
 
@@ -96,7 +99,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dexhunter/vibe-clock@v1.0.0
+      - uses: dexhunter/vibe-clock@v1.1.0
         with:
           gist_id: ${{ secrets.VIBE_CLOCK_GIST_ID }}
 ```
@@ -153,6 +156,7 @@ vibe-clock push  ──▶  Gist (sanitized JSON)
 |---------|-------------|
 | `vibe-clock init` | Interactive setup — detects agents, asks for GitHub token |
 | `vibe-clock summary` | Rich terminal summary of usage stats |
+| `vibe-clock status` | Show current configuration and connection status |
 | `vibe-clock render` | Generate SVG visualizations locally |
 | `vibe-clock export` | Export raw stats as JSON |
 | `vibe-clock push` | Push sanitized stats to a GitHub gist |

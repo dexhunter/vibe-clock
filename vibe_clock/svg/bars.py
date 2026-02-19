@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from html import escape
+
 from ..models import AgentStats
 
 _AGENT_COLORS = {
@@ -42,7 +44,7 @@ def render_bars(stats: AgentStats, theme: str = "dark") -> str:
 
         rows.append(
             f'<text x="{label_x}" y="{y + 13}" fill="{text_color}" '
-            f'font-size="11">{p.project}</text>'
+            f'font-size="11">{escape(p.project)}</text>'
             f'<rect x="{bar_x}" y="{y}" width="{bar_width}" '
             f'height="{bar_height}" rx="3" fill="{bar_bg}"/>'
             f'<rect x="{bar_x}" y="{y}" width="{w:.0f}" '
@@ -60,7 +62,7 @@ def render_bars(stats: AgentStats, theme: str = "dark") -> str:
             f'<rect x="{lx}" y="{legend_y}" width="8" height="8" '
             f'rx="1" fill="{color}"/>'
             f'<text x="{lx + 12}" y="{legend_y + 8}" fill="{muted}" '
-            f'font-size="9">{agent}</text>'
+            f'font-size="9">{escape(agent)}</text>'
         )
         lx += len(agent) * 6 + 25
 

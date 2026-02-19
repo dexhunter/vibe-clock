@@ -11,6 +11,7 @@ import string
 from pathlib import Path
 
 from .config import Config
+from .formatting import format_number
 from .models import AgentStats, ProjectBreakdown
 
 # Patterns that should never appear in pushed data
@@ -111,7 +112,7 @@ def preview(stats: AgentStats) -> str:
         f"Total sessions: {stats.total_sessions}",
         f"Total messages: {stats.total_messages}",
         f"Total minutes: {stats.total_minutes:.1f}",
-        f"Total tokens: {stats.total_tokens.total:,}",
+        f"Total tokens: {format_number(stats.total_tokens.total)}",
         f"Active agents: {', '.join(stats.active_agents)}",
         f"Favorite model: {stats.favorite_model}",
         f"Peak hour: {stats.peak_hour}:00",
@@ -132,7 +133,7 @@ def preview(stats: AgentStats) -> str:
     for m in stats.models:
         lines.append(
             f"  {m.model}: {m.session_count} sessions, "
-            f"{m.tokens.total:,} tokens"
+            f"{format_number(m.tokens.total)} tokens"
         )
 
     lines.append("")

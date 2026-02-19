@@ -12,6 +12,7 @@ from rich.table import Table
 from . import __version__
 from .aggregator import aggregate
 from .collectors import get_collectors
+from .formatting import format_number
 from .config import Config, load_config, save_config
 from .models import AgentStats
 from .sanitizer import preview, sanitize
@@ -69,6 +70,7 @@ def init() -> None:
         "\nGitHub token (PAT with 'gist' scope, or press Enter to skip)",
         default="",
         show_default=False,
+        hide_input=True,
     )
     if token:
         config.github.token = token
@@ -107,8 +109,8 @@ def summary(days: int | None) -> None:
     hours = stats.total_minutes / 60
     table.add_row("Total Time", f"{hours:.1f} hrs")
     table.add_row("Sessions", str(stats.total_sessions))
-    table.add_row("Messages", f"{stats.total_messages:,}")
-    table.add_row("Tokens", f"{stats.total_tokens.total:,}")
+    table.add_row("Messages", format_number(stats.total_messages))
+    table.add_row("Tokens", format_number(stats.total_tokens.total))
     table.add_row("Favorite Model", stats.favorite_model or "—")
     table.add_row("Peak Hour", f"{stats.peak_hour}:00")
     table.add_row("Active Agents", ", ".join(stats.active_agents) or "—")
@@ -123,8 +125,38 @@ def summary(days: int | None) -> None:
         mt.add_column("Messages", justify="right")
         mt.add_column("Tokens", justify="right")
         for m in stats.models:
-            mt.add_row(m.model, str(m.session_count), str(m.message_count), f"{m.tokens.total:,}")
+            mt.add_row(m.model, str(m.session_count), str(m.message_count), format_number(m.tokens.total))
         console.print(mt)
+
+
+@cli.command()
+@click.option("--days", "-d", default=None, type=int, help="Number of days to include.")
+def status(days: int | None) -> None:
+    """Print a compact one-line status summary."""
+    config = load_config()
+    if days:
+        config.default_days = days
+
+    collectors = get_collectors(config)
+    if not collectors:
+        click.echo("No agent data found. Run 'vibe-clock init' first.")
+        return
+
+    all_sessions = []
+    for c in collectors:
+        all_sessions.extend(c.collect())
+
+    stats = aggregate(all_sessions, config)
+    hours = stats.total_minutes / 60
+    model = stats.favorite_model or "—"
+    peak = f"{stats.peak_hour}:00"
+
+    click.echo(
+        f"\u23f1 {hours:.1f} hrs | {stats.total_sessions} sessions"
+        f" | {format_number(stats.total_messages)} msgs"
+        f" | {format_number(stats.total_tokens.total)} tokens"
+        f" | {model} | peak {peak}"
+    )
 
 
 @cli.command()

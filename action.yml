@@ -39,25 +39,37 @@ runs:
 
     - name: Install vibe-clock
       shell: bash
-      run: pip install git+https://github.com/dexhunter/vibe-clock.git
+      run: pip install git+https://github.com/dexhunter/vibe-clock.git@v1.1.0
 
     - name: Fetch stats from gist
       shell: bash
+      env:
+        GIST_ID: ${{ inputs.gist_id }}
+        REPO_OWNER: ${{ github.repository_owner }}
       run: |
-        curl -sf "https://gist.githubusercontent.com/${{ github.repository_owner }}/${{ inputs.gist_id }}/raw/vibe-clock-data.json" -o /tmp/vibe-clock-data.json
+        curl -sf "https://gist.githubusercontent.com/${REPO_OWNER}/${GIST_ID}/raw/vibe-clock-data.json" \
+          -o /tmp/vibe-clock-data.json
 
     - name: Generate SVGs
       shell: bash
+      env:
+        OUTPUT_DIR: ${{ inputs.output_dir }}
+        CHART_TYPES: ${{ inputs.chart_types }}
+        THEME: ${{ inputs.theme }}
       run: |
-        mkdir -p ${{ inputs.output_dir }}
-        vibe-clock render --from-json /tmp/vibe-clock-data.json --type ${{ inputs.chart_types }} --theme ${{ inputs.theme }} --output ${{ inputs.output_dir }}
+        mkdir -p "${OUTPUT_DIR}"
+        vibe-clock render --from-json /tmp/vibe-clock-data.json \
+          --type "${CHART_TYPES}" --theme "${THEME}" --output "${OUTPUT_DIR}"
 
     - name: Commit and push
       if: inputs.commit == 'true'
       shell: bash
+      env:
+        OUTPUT_DIR: ${{ inputs.output_dir }}
+        COMMIT_MSG: ${{ inputs.commit_message }}
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
-        git add ${{ inputs.output_dir }}
-        git diff --staged --quiet || git commit -m "${{ inputs.commit_message }}"
+        git add "${OUTPUT_DIR}"
+        git diff --staged --quiet || git commit -m "${COMMIT_MSG}"
         git push

@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from html import escape
 
+from ..formatting import format_number
 from ..models import AgentStats
 
 _DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -60,13 +62,13 @@ def render_weekly(stats: AgentStats, theme: str = "dark") -> str:
             bars.append(
                 f'<rect x="{x:.1f}" y="{y:.1f}" width="{bar_w:.1f}" '
                 f'height="{bar_h:.1f}" rx="3" fill="{bar_color}">'
-                f'<title>{_DAYS[i]}: {sessions} sessions, {hours:.1f}h</title></rect>'
+                f'<title>{escape(_DAYS[i])}: {sessions} sessions, {hours:.1f}h</title></rect>'
             )
             # Count label above bar
             bars.append(
                 f'<text x="{x + bar_w / 2:.1f}" y="{y - 4:.1f}" '
                 f'text-anchor="middle" fill="{muted}" font-size="9">'
-                f'{sessions}</text>'
+                f'{format_number(sessions)}</text>'
             )
 
         # Day label

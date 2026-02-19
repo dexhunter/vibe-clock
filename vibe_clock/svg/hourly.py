@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from html import escape
+
+from ..formatting import format_number
 from ..models import AgentStats
 
 
@@ -45,7 +48,7 @@ def render_hourly(stats: AgentStats, theme: str = "dark") -> str:
             bars.append(
                 f'<rect x="{x:.1f}" y="{y:.1f}" width="{bar_w:.1f}" '
                 f'height="{bar_h:.1f}" rx="2" fill="{bar_color}">'
-                f'<title>{h}:00 — {count} sessions</title></rect>'
+                f'<title>{escape(f"{h}:00")} — {count} sessions</title></rect>'
             )
 
         # Hour labels (show every 3 hours)
@@ -59,7 +62,7 @@ def render_hourly(stats: AgentStats, theme: str = "dark") -> str:
 
     # Y-axis labels
     y_labels = []
-    for frac, label in [(0, str(max_val)), (0.5, str(max_val // 2)), (1.0, "0")]:
+    for frac, label in [(0, format_number(max_val)), (0.5, format_number(max_val // 2)), (1.0, "0")]:
         y = chart_top + frac * chart_height
         y_labels.append(
             f'<text x="{chart_left - 5}" y="{y + 3:.1f}" '

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
+from html import escape
 
 from ..models import AgentStats
 
@@ -73,7 +74,7 @@ def render_heatmap(stats: AgentStats, theme: str = "dark") -> str:
         cells.append(
             f'<rect x="{x}" y="{y}" width="{cell_size}" height="{cell_size}" '
             f'rx="2" fill="{color}">'
-            f'<title>{current}: {count} sessions</title></rect>'
+            f'<title>{escape(str(current))}: {count} sessions</title></rect>'
         )
 
         # Move to next day

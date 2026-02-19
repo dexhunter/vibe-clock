@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from html import escape
 
+from ..formatting import format_number
 from ..models import AgentStats
 
 _PALETTE = [
@@ -39,16 +40,7 @@ def render_token_bars(stats: AgentStats, theme: str = "dark") -> str:
         pct = m.tokens.total / max_tokens
         w = max(pct * bar_width, 2)
         color = _PALETTE[i % len(_PALETTE)]
-        total = m.tokens.total
-
-        if total >= 1_000_000_000:
-            label = f"{total / 1_000_000_000:.1f}B"
-        elif total >= 1_000_000:
-            label = f"{total / 1_000_000:.1f}M"
-        elif total >= 1_000:
-            label = f"{total / 1_000:.0f}K"
-        else:
-            label = str(total)
+        label = format_number(m.tokens.total)
 
         name = escape(m.model)
         rows.append(

@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from html import escape
+
+from ..formatting import format_number
 from ..models import AgentStats
 
 _DARK = {
@@ -25,16 +28,15 @@ _LIGHT = {
 def render_card(stats: AgentStats, theme: str = "dark") -> str:
     c = _DARK if theme == "dark" else _LIGHT
     hours = stats.total_minutes / 60
-    tokens_k = stats.total_tokens.total / 1000
 
     rows = [
         ("Total Time", f"{hours:.1f} hrs"),
         ("Sessions", str(stats.total_sessions)),
-        ("Messages", f"{stats.total_messages:,}"),
-        ("Tokens", f"{tokens_k:,.0f}K"),
-        ("Favorite Model", stats.favorite_model or "—"),
+        ("Messages", format_number(stats.total_messages)),
+        ("Tokens", format_number(stats.total_tokens.total)),
+        ("Favorite Model", escape(stats.favorite_model) if stats.favorite_model else "—"),
         ("Peak Hour", f"{stats.peak_hour}:00"),
-        ("Active Agents", ", ".join(stats.active_agents) or "—"),
+        ("Active Agents", escape(", ".join(stats.active_agents)) or "—"),
         ("Longest Session", f"{stats.longest_session_minutes:.0f} min"),
     ]
 
