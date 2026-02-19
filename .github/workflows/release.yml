@@ -34,29 +34,31 @@ jobs:
       - name: Update formula from PyPI
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          # Wait for PyPI to index the new release
           sleep 30
-          # Fetch sdist URL and SHA from PyPI JSON API
-          PYPI_JSON=$(curl -sf "https://pypi.org/pypi/vibe-clock/${VERSION}/json")
-          SDIST_URL=$(echo "$PYPI_JSON" | python3 -c "
-          import json, sys
-          data = json.load(sys.stdin)
-          for f in data['urls']:
-              if f['packagetype'] == 'sdist':
-                  print(f['url'])
+          python3 - "$VERSION" <<'PYEOF'
+          import json, re, sys, urllib.request
+          version = sys.argv[1]
+          with urllib.request.urlopen(f"https://pypi.org/pypi/vibe-clock/{version}/json") as r:
+              data = json.loads(r.read())
+          for f in data["urls"]:
+              if f["packagetype"] == "sdist":
+                  new_url, new_sha = f["url"], f["digests"]["sha256"]
                   break
-          ")
-          SDIST_SHA=$(echo "$PYPI_JSON" | python3 -c "
-          import json, sys
-          data = json.load(sys.stdin)
-          for f in data['urls']:
-              if f['packagetype'] == 'sdist':
-                  print(f['digests']['sha256'])
-                  break
-          ")
-          # Update formula
-          sed -i "s|url \".*\"|url \"${SDIST_URL}\"|" Formula/vibe-clock.rb
-          sed -i "s|sha256 \"[a-f0-9]*\"|sha256 \"${SDIST_SHA}\"|" Formula/vibe-clock.rb
+          formula = open("Formula/vibe-clock.rb").read()
+          # Only replace the first (top-level) url and sha256, not resource blocks
+          formula = re.sub(
+              r'(^  url )".*"',
+              rf'\1"{new_url}"',
+              formula, count=1, flags=re.MULTILINE,
+          )
+          formula = re.sub(
+              r'(^  sha256 )"[a-f0-9]+"',
+              rf'\1"{new_sha}"',
+              formula, count=1, flags=re.MULTILINE,
+          )
+          open("Formula/vibe-clock.rb", "w").write(formula)
+          print(f"Updated formula to {version}: {new_url}")
+          PYEOF
 
       - name: Commit and push
         run: |
