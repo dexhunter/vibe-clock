@@ -4,6 +4,10 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import httpx
 
 import click
 import rich.box as box
@@ -324,6 +328,25 @@ def export(output: str, days: int | None) -> None:
     console.print(f"[green]Exported to {output}[/green]")
 
 
+def _trigger_render(client: httpx.Client, profile_repo: str) -> None:
+    """Trigger the vibe-clock workflow on the profile repo via workflow_dispatch."""
+    repo_resp = client.get(f"https://api.github.com/repos/{profile_repo}")
+    if repo_resp.status_code != 200:
+        console.print(f"[yellow]Could not find profile repo {profile_repo}[/yellow]")
+        return
+
+    default_branch = repo_resp.json().get("default_branch", "main")
+    dispatch_resp = client.post(
+        f"https://api.github.com/repos/{profile_repo}/actions/workflows/vibe-clock.yml/dispatches",
+        json={"ref": default_branch},
+    )
+
+    if dispatch_resp.status_code == 204:
+        console.print(f"[green]Triggered render workflow on {profile_repo}[/green]")
+    else:
+        console.print(f"[yellow]Could not trigger workflow ({dispatch_resp.status_code})[/yellow]")
+
+
 @cli.command()
 @click.option("--dry-run", is_flag=True, help="Preview what would be pushed without actually pushing.")
 @click.option("--days", "-d", default=None, type=int)
@@ -382,9 +405,9 @@ def push(dry_run: bool, days: int | None) -> None:
             "https://api.github.com/gists",
             json=gist_data,
         )
-    client.close()
 
     if resp.status_code not in (200, 201):
+        client.close()
         console.print(f"[red]GitHub API error ({resp.status_code}): {resp.text}[/red]")
         sys.exit(1)
 
@@ -400,6 +423,18 @@ def push(dry_run: bool, days: int | None) -> None:
 
     console.print(f"[dim]{result.get('html_url', '')}[/dim]")
 
+    # Trigger profile repo workflow to render SVGs
+    profile_repo = config.github.profile_repo
+    if not profile_repo:
+        owner = result.get("owner", {}).get("login", "")
+        if owner:
+            profile_repo = f"{owner}/{owner}"
+
+    if profile_repo:
+        _trigger_render(client, profile_repo)
+
+    client.close()
+
 
 @cli.command()
 @click.option(
@@ -408,11 +443,16 @@ def push(dry_run: bool, days: int | None) -> None:
     default="daily",
     help="How often to push stats.",
 )
-@click.option("--time", "run_time", default="00:00", help="Time of day to run (HH:MM, 24h). Ignored for hourly.")
+@click.option("--time", "run_time", default=None, help="Time of day to run (HH:MM, 24h). Defaults to local equivalent of 00:00 UTC. Ignored for hourly.")
 @click.option("--force", is_flag=True, help="Overwrite existing schedule.")
-def schedule(interval: str, run_time: str, force: bool) -> None:
+def schedule(interval: str, run_time: str | None, force: bool) -> None:
     """Schedule automatic vibe-clock push."""
     import re
+    from datetime import datetime, timezone
+
+    if run_time is None:
+        utc_midnight = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        run_time = utc_midnight.astimezone().strftime("%H:%M")
 
     from .scheduler import get_scheduler, resolve_binary
 

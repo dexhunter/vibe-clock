@@ -29,6 +29,7 @@ class PathsConfig(BaseModel):
 class GithubConfig(BaseModel):
     token: str = ""
     gist_id: str = ""
+    profile_repo: str = ""
 
 
 class PrivacyConfig(BaseModel):
@@ -111,6 +112,7 @@ def save_config(config: Config) -> None:
         "[github]",
         f'token = "{config.github.token}"',
         f'gist_id = "{config.github.gist_id}"',
+        f'profile_repo = "{config.github.profile_repo}"',
         "",
         "[agents]",
         f'enabled = {config.enabled_agents}',
