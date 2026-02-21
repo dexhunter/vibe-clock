@@ -39,7 +39,7 @@ runs:
 
     - name: Install vibe-clock
       shell: bash
-      run: pip install git+https://github.com/dexhunter/vibe-clock.git@v1.1.0
+      run: pip install git+https://github.com/dexhunter/vibe-clock.git@${{ github.action_ref }}
 
     - name: Fetch stats from gist
       shell: bash
