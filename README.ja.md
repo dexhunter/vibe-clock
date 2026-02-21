@@ -89,8 +89,6 @@ vibe-clock push          # サニタイズされたデータを含むパブリ�
 name: Update Vibe Clock Stats
 
 on:
-  schedule:
-    - cron: '0 0 * * *'
   workflow_dispatch:
 
 jobs:
@@ -99,7 +97,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dexhunter/vibe-clock@v1.1.0
+      - uses: dexhunter/vibe-clock@v1.3.0
         with:
           gist_id: ${{ secrets.VIBE_CLOCK_GIST_ID }}
 ```
@@ -134,8 +132,8 @@ jobs:
 あなた（ローカル）              GitHub
 ─────────                      ──────
 vibe-clock push  ──▶  Gist（サニタイズ済みJSON）
-                              │
-                      Actions（毎日のcronジョブ）
+                     │
+                     └──▶  workflow_dispatch
                               │
                        gist JSONを取得
                        SVGを生成
@@ -159,7 +157,7 @@ vibe-clock push  ──▶  Gist（サニタイズ済みJSON）
 | `vibe-clock status` | 現在の設定と接続状態を表示 |
 | `vibe-clock render` | SVGビジュアライゼーションをローカルで生成 |
 | `vibe-clock export` | 生の統計データをJSONでエクスポート |
-| `vibe-clock push` | サニタイズされた統計データをGitHub gistにプッシュ |
+| `vibe-clock push` | サニタイズされた統計データをGitHub gistにプッシュし、プロフィールリポジトリのレンダリングをトリガー |
 | `vibe-clock push --dry-run` | プッシュされる内容をプレビュー |
 | `vibe-clock schedule` | 定期プッシュを自動スケジュール（launchd / systemd / cron） |
 | `vibe-clock unschedule` | スケジュールされたプッシュタスクを削除 |

@@ -89,8 +89,6 @@ vibe-clock push          # 创建一个包含清洗后数据的公开 gist
 name: Update Vibe Clock Stats
 
 on:
-  schedule:
-    - cron: '0 0 * * *'
   workflow_dispatch:
 
 jobs:
@@ -99,7 +97,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dexhunter/vibe-clock@v1.1.0
+      - uses: dexhunter/vibe-clock@v1.3.0
         with:
           gist_id: ${{ secrets.VIBE_CLOCK_GIST_ID }}
 ```
@@ -134,8 +132,8 @@ jobs:
 你的设备（本地）                GitHub
 ─────────                      ──────
 vibe-clock push  ──▶  Gist（清洗后的 JSON）
-                              │
-                      Actions（每日定时任务）
+                     │
+                     └──▶  workflow_dispatch
                               │
                        获取 gist JSON
                        生成 SVG 图表
@@ -159,7 +157,7 @@ vibe-clock push  ──▶  Gist（清洗后的 JSON）
 | `vibe-clock status` | 显示当前配置和连接状态 |
 | `vibe-clock render` | 在本地生成 SVG 可视化图表 |
 | `vibe-clock export` | 导出原始统计数据为 JSON |
-| `vibe-clock push` | 推送清洗后的统计数据到 GitHub gist |
+| `vibe-clock push` | 推送清洗后的统计数据到 GitHub gist 并触发个人主页仓库渲染 |
 | `vibe-clock push --dry-run` | 预览将要推送的内容 |
 | `vibe-clock schedule` | 自动定时推送（launchd / systemd / cron） |
 | `vibe-clock unschedule` | 移除定时推送任务 |

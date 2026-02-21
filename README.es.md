@@ -89,8 +89,6 @@ En tu repositorio de perfil: **Settings → Secrets → Actions** → agrega:
 name: Update Vibe Clock Stats
 
 on:
-  schedule:
-    - cron: '0 0 * * *'
   workflow_dispatch:
 
 jobs:
@@ -99,7 +97,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dexhunter/vibe-clock@v1.1.0
+      - uses: dexhunter/vibe-clock@v1.3.0
         with:
           gist_id: ${{ secrets.VIBE_CLOCK_GIST_ID }}
 ```
@@ -134,8 +132,8 @@ Ve a la pestaña **Actions** → "Update Vibe Clock Stats" → **Run workflow**
 Tú (local)                     GitHub
 ─────────                      ──────
 vibe-clock push  ──▶  Gist (JSON sanitizado)
-                              │
-                      Actions (cron diario)
+                     │
+                     └──▶  workflow_dispatch
                               │
                        obtener JSON del gist
                        generar SVGs
@@ -159,7 +157,7 @@ vibe-clock push  ──▶  Gist (JSON sanitizado)
 | `vibe-clock status` | Muestra la configuración actual y el estado de conexión |
 | `vibe-clock render` | Genera visualizaciones SVG localmente |
 | `vibe-clock export` | Exporta estadísticas sin procesar como JSON |
-| `vibe-clock push` | Envía estadísticas sanitizadas a un gist de GitHub |
+| `vibe-clock push` | Envía estadísticas sanitizadas a un gist de GitHub y dispara el renderizado del repositorio de perfil |
 | `vibe-clock push --dry-run` | Previsualiza lo que se enviaría |
 | `vibe-clock schedule` | Programar push periódico automático (launchd / systemd / cron) |
 | `vibe-clock unschedule` | Eliminar la tarea de push programada |
