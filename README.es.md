@@ -146,6 +146,7 @@ vibe-clock push  ──▶  Gist (JSON sanitizado)
 |--------|-------------------|--------|
 | **Claude Code** | `~/.claude/` | Soportado |
 | **Codex** | `~/.codex/` | Soportado |
+| **Gemini CLI** | `~/.gemini/` | Soportado |
 | **OpenCode** | `~/.local/share/opencode/` | Soportado |
 
 ## Comandos

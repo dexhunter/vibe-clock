@@ -21,6 +21,7 @@ CONFIG_PATH = CONFIG_DIR / "config.toml"
 class PathsConfig(BaseModel):
     claude_code: Path = Field(default_factory=lambda: Path.home() / ".claude")
     codex: Path = Field(default_factory=lambda: Path.home() / ".codex")
+    gemini_cli: Path = Field(default_factory=lambda: Path.home() / ".gemini")
     opencode: Path = Field(
         default_factory=lambda: Path.home() / ".local" / "share" / "opencode"
     )
@@ -51,7 +52,7 @@ class Config(BaseModel):
     paths: PathsConfig = Field(default_factory=PathsConfig)
     github: GithubConfig = Field(default_factory=GithubConfig)
     enabled_agents: list[str] = Field(
-        default_factory=lambda: ["claude_code", "codex", "opencode"]
+        default_factory=lambda: ["claude_code", "codex", "gemini_cli", "opencode"]
     )
     privacy: PrivacyConfig = Field(default_factory=PrivacyConfig)
     schedule: ScheduleConfig = Field(default_factory=ScheduleConfig)
@@ -107,6 +108,7 @@ def save_config(config: Config) -> None:
         "[paths]",
         f'claude_code = "{config.paths.claude_code}"',
         f'codex = "{config.paths.codex}"',
+        f'gemini_cli = "{config.paths.gemini_cli}"',
         f'opencode = "{config.paths.opencode}"',
         "",
         "[github]",

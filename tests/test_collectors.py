@@ -7,6 +7,7 @@ from pathlib import Path
 
 from vibe_clock.collectors.claude_code import ClaudeCodeCollector
 from vibe_clock.collectors.codex import CodexCollector
+from vibe_clock.collectors.gemini_cli import GeminiCliCollector
 from vibe_clock.collectors.opencode import OpenCodeCollector
 
 
@@ -138,6 +139,87 @@ def test_codex_collector(tmp_path: Path) -> None:
     assert s.tokens.output_tokens == 200
     assert s.tokens.cache_read_tokens == 100
     assert s.message_count == 2  # 1 user_message + 1 assistant response_item
+
+
+def test_gemini_cli_collector(tmp_path: Path) -> None:
+    """Test Gemini CLI session JSON parsing."""
+    chats_dir = tmp_path / "tmp" / "my-project" / "chats"
+    chats_dir.mkdir(parents=True)
+
+    session_data = {
+        "sessionId": "abc-123",
+        "projectHash": "deadbeef",
+        "startTime": "2026-02-10T10:00:00Z",
+        "lastUpdated": "2026-02-10T10:10:00Z",
+        "messages": [
+            {
+                "id": "msg-1",
+                "timestamp": "2026-02-10T10:00:00Z",
+                "type": "user",
+                "content": [{"text": "hello"}],
+            },
+            {
+                "id": "msg-2",
+                "timestamp": "2026-02-10T10:00:05Z",
+                "type": "gemini",
+                "content": "Hi there!",
+                "tokens": {
+                    "input": 500,
+                    "output": 35,
+                    "cached": 100,
+                    "thoughts": 50,
+                    "tool": 0,
+                    "total": 685,
+                },
+                "model": "gemini-3-flash-preview",
+            },
+            {
+                "id": "msg-3",
+                "timestamp": "2026-02-10T10:05:00Z",
+                "type": "user",
+                "content": [{"text": "thanks"}],
+            },
+            {
+                "id": "msg-4",
+                "timestamp": "2026-02-10T10:05:10Z",
+                "type": "gemini",
+                "content": "You're welcome!",
+                "tokens": {
+                    "input": 600,
+                    "output": 20,
+                    "cached": 200,
+                    "thoughts": 30,
+                    "tool": 0,
+                    "total": 850,
+                },
+                "model": "gemini-3-flash-preview",
+            },
+        ],
+    }
+    (chats_dir / "session-2026-02-10T10-00-abc123.json").write_text(
+        json.dumps(session_data)
+    )
+
+    collector = GeminiCliCollector(data_dir=tmp_path)
+    assert collector.is_available()
+
+    sessions = collector.collect()
+    assert len(sessions) == 1
+
+    s = sessions[0]
+    assert s.session_id == "abc-123"
+    assert s.agent == "gemini_cli"
+    assert s.model == "gemini-3-flash-preview"
+    assert s.message_count == 4  # 2 user + 2 gemini
+    assert s.tokens.input_tokens == 1100
+    assert s.tokens.output_tokens == 55
+    assert s.tokens.cache_read_tokens == 300
+    assert s.project == "my-project"
+
+
+def test_gemini_cli_not_available(tmp_path: Path) -> None:
+    collector = GeminiCliCollector(data_dir=tmp_path / "nonexistent")
+    assert not collector.is_available()
 
 
 def test_opencode_collector(tmp_path: Path) -> None:

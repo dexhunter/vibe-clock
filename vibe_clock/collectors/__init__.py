@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from .claude_code import ClaudeCodeCollector
 from .codex import CodexCollector
+from .gemini_cli import GeminiCliCollector
 from .opencode import OpenCodeCollector
 
 if TYPE_CHECKING:
@@ -15,6 +16,7 @@ if TYPE_CHECKING:
 COLLECTOR_MAP: dict[str, type[BaseCollector]] = {
     "claude_code": ClaudeCodeCollector,
     "codex": CodexCollector,
+    "gemini_cli": GeminiCliCollector,
     "opencode": OpenCodeCollector,
 }
 
