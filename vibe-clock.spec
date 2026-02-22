@@ -11,6 +11,7 @@ a = Analysis(
     hiddenimports=[
         "vibe_clock.collectors.claude_code",
         "vibe_clock.collectors.codex",
+        "vibe_clock.collectors.gemini_cli",
         "vibe_clock.collectors.opencode",
         "vibe_clock.svg.bars",
         "vibe_clock.svg.card",
