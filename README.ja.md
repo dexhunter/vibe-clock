@@ -25,7 +25,14 @@
 ## クイックスタート
 
 ```bash
+# macOS (Homebrew)
+brew install dexhunter/tap/vibe-clock
+
+# または pip で
 pip install vibe-clock
+```
+
+```bash
 vibe-clock init          # エージェントを自動検出し、設定を行います
 vibe-clock summary       # ターミナルで統計情報を確認
 ```

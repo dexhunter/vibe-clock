@@ -25,7 +25,14 @@
 ## Quick Start
 
 ```bash
+# macOS (Homebrew)
+brew install dexhunter/tap/vibe-clock
+
+# or via pip
 pip install vibe-clock
+```
+
+```bash
 vibe-clock init          # auto-detects agents, sets up config
 vibe-clock summary       # see your stats in the terminal
 ```
