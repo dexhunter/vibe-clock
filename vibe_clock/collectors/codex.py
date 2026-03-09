@@ -20,7 +20,7 @@ from .base import BaseCollector
 class CodexCollector(BaseCollector):
     agent_name = "codex"
 
-    def collect(self) -> list[Session]:
+    def collect(self, days: int | None = None) -> list[Session]:
         sessions_dir = self.data_dir / "sessions"
         if not sessions_dir.exists():
             return []

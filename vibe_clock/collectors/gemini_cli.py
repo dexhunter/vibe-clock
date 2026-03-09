@@ -22,12 +22,13 @@ from .base import BaseCollector
 class GeminiCliCollector(BaseCollector):
     agent_name = "gemini_cli"
 
-    def collect(self, days: int = 365) -> list[Session]:
+    def collect(self, days: int | None = None) -> list[Session]:
         tmp_dir = self.data_dir / "tmp"
         if not tmp_dir.exists():
             return []
 
-        mtime_cutoff = self._cutoff_timestamp(days)
+        effective_days = 365 if days is None else days
+        mtime_cutoff = self._cutoff_timestamp(effective_days)
         results: list[Session] = []
 
         for session_file in tmp_dir.rglob("session-*.json"):

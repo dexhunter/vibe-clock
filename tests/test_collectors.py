@@ -271,3 +271,27 @@ def test_opencode_collector(tmp_path: Path) -> None:
     assert s.tokens.output_tokens == 100
     assert s.tokens.cache_read_tokens == 50
     assert s.tokens.cache_write_tokens == 10
+
+
+def test_collect_accepts_days_kwarg_for_all_collectors(tmp_path: Path) -> None:
+    """Regression: every collector should accept the CLI `days` kwarg."""
+    # Claude Code minimal layout
+    claude_projects = tmp_path / "claude" / "projects" / "p"
+    claude_projects.mkdir(parents=True)
+
+    # Codex minimal layout
+    codex_sessions = tmp_path / "codex" / "sessions"
+    codex_sessions.mkdir(parents=True)
+
+    # OpenCode minimal layout
+    opencode_storage = tmp_path / "opencode" / "storage" / "session"
+    opencode_storage.mkdir(parents=True)
+
+    # Gemini CLI minimal layout
+    gemini_tmp = tmp_path / "gemini" / "tmp"
+    gemini_tmp.mkdir(parents=True)
+
+    assert ClaudeCodeCollector(data_dir=tmp_path / "claude").collect(days=7) == []
+    assert CodexCollector(data_dir=tmp_path / "codex").collect(days=7) == []
+    assert OpenCodeCollector(data_dir=tmp_path / "opencode").collect(days=7) == []
+    assert GeminiCliCollector(data_dir=tmp_path / "gemini").collect(days=7) == []

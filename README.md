@@ -179,6 +179,19 @@ Environment variable overrides:
 - `VIBE_CLOCK_GIST_ID` — Gist ID for push/pull
 - `VIBE_CLOCK_DAYS` — Number of days to aggregate
 
+
+## Developer Notes
+
+### Collector interface contract
+
+`BaseCollector.collect()` accepts an optional `days` keyword argument:
+
+```python
+def collect(self, days: int | None = None) -> list[Session]
+```
+
+CLI commands call collectors with `collect(days=...)`. If a collector does not implement date filtering, it should still accept the argument and ignore it to remain compatible with the shared interface.
+
 ## License
 
 MIT

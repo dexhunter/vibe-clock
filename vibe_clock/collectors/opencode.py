@@ -19,7 +19,7 @@ from .base import BaseCollector
 class OpenCodeCollector(BaseCollector):
     agent_name = "opencode"
 
-    def collect(self) -> list[Session]:
+    def collect(self, days: int | None = None) -> list[Session]:
         storage = self.data_dir / "storage"
         session_dir = storage / "session"
         message_dir = storage / "message"

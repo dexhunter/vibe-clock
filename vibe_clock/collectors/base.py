@@ -18,6 +18,11 @@ class BaseCollector(ABC):
         return self.data_dir.exists()
 
     @abstractmethod
-    def collect(self) -> list[Session]:
-        """Collect sessions from this agent's data directory."""
+    def collect(self, days: int | None = None) -> list[Session]:
+        """Collect sessions from this agent's data directory.
+
+        Args:
+            days: Optional lookback window in days. Collectors that do not
+                support date filtering may ignore this argument.
+        """
         ...

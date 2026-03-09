@@ -18,7 +18,7 @@ from .base import BaseCollector
 class ClaudeCodeCollector(BaseCollector):
     agent_name = "claude_code"
 
-    def collect(self) -> list[Session]:
+    def collect(self, days: int | None = None) -> list[Session]:
         """Collect sessions from Claude Code JSONL project files."""
         sessions: dict[str, _SessionAcc] = {}
         projects_dir = self.data_dir / "projects"
