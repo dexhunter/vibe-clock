@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from ..models import Session
@@ -16,6 +17,10 @@ class BaseCollector(ABC):
 
     def is_available(self) -> bool:
         return self.data_dir.exists()
+
+    def _cutoff_timestamp(self, days: int) -> float:
+        """Return a Unix timestamp for `days` days ago."""
+        return (datetime.now(timezone.utc) - timedelta(days=days)).timestamp()
 
     @abstractmethod
     def collect(self, days: int | None = None) -> list[Session]:

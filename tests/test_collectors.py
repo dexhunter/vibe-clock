@@ -222,15 +222,15 @@ def test_gemini_cli_not_available(tmp_path: Path) -> None:
     assert not collector.is_available()
 
 
-def test_opencode_collector(tmp_path: Path) -> None:
-    """Test OpenCode session/message JSON parsing."""
+def test_opencode_collector_legacy_json(tmp_path: Path) -> None:
+    """Test OpenCode legacy JSON file storage parsing."""
     storage = tmp_path / "storage"
     session_dir = storage / "session" / "proj1"
     session_dir.mkdir(parents=True)
     message_dir = storage / "message" / "ses_001"
     message_dir.mkdir(parents=True)
 
-    # Session file
+    # Session file — named without any required prefix in the new format
     ses_data = {
         "id": "ses_001",
         "directory": "/home/user/myproject",
@@ -238,7 +238,7 @@ def test_opencode_collector(tmp_path: Path) -> None:
     }
     (session_dir / "ses_001.json").write_text(json.dumps(ses_data))
 
-    # Message files
+    # Message files — named without any required prefix in the new format
     msg1 = {
         "id": "msg_001",
         "sessionID": "ses_001",
@@ -271,6 +271,126 @@ def test_opencode_collector(tmp_path: Path) -> None:
     assert s.tokens.output_tokens == 100
     assert s.tokens.cache_read_tokens == 50
     assert s.tokens.cache_write_tokens == 10
+
+
+def test_opencode_collector_sqlite(tmp_path: Path) -> None:
+    """Test OpenCode SQLite database storage parsing (current format)."""
+    import sqlite3
+
+    db_path = tmp_path / "opencode.db"
+    con = sqlite3.connect(str(db_path))
+    con.executescript("""
+        CREATE TABLE session (
+            id TEXT PRIMARY KEY,
+            directory TEXT NOT NULL,
+            time_created INTEGER NOT NULL,
+            time_updated INTEGER NOT NULL
+        );
+        CREATE TABLE message (
+            id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL,
+            time_created INTEGER NOT NULL,
+            time_updated INTEGER NOT NULL,
+            data TEXT NOT NULL
+        );
+    """)
+
+    # Insert a session
+    con.execute(
+        "INSERT INTO session (id, directory, time_created, time_updated) VALUES (?, ?, ?, ?)",
+        ("sess-db-001", "/home/user/dbproject", 1707560000000, 1707560300000),
+    )
+
+    # Insert an assistant message
+    assistant_msg = json.dumps({
+        "role": "assistant",
+        "modelID": "claude-3-7-sonnet",
+        "providerID": "anthropic",
+        "tokens": {
+            "input": 500,
+            "output": 200,
+            "cache": {"read": 80, "write": 20},
+        },
+        "time": {"created": 1707560100000, "completed": 1707560250000},
+    })
+    con.execute(
+        "INSERT INTO message (id, session_id, time_created, time_updated, data)"
+        " VALUES (?, ?, ?, ?, ?)",
+        ("msg-db-001", "sess-db-001", 1707560100000, 1707560250000, assistant_msg),
+    )
+
+    # Insert a user message — should NOT be counted
+    user_msg = json.dumps({
+        "role": "user",
+        "time": {"created": 1707560050000},
+    })
+    con.execute(
+        "INSERT INTO message (id, session_id, time_created, time_updated, data)"
+        " VALUES (?, ?, ?, ?, ?)",
+        ("msg-db-002", "sess-db-001", 1707560050000, 1707560050000, user_msg),
+    )
+
+    con.commit()
+    con.close()
+
+    collector = OpenCodeCollector(data_dir=tmp_path)
+    assert collector.is_available()
+
+    sessions = collector.collect()
+    assert len(sessions) == 1
+
+    s = sessions[0]
+    assert s.session_id == "sess-db-001"
+    assert s.agent == "opencode"
+    assert s.model == "claude-3-7-sonnet"
+    assert s.message_count == 1  # Only assistant messages counted
+    assert s.tokens.input_tokens == 500
+    assert s.tokens.output_tokens == 200
+    assert s.tokens.cache_read_tokens == 80
+    assert s.tokens.cache_write_tokens == 20
+
+
+def test_opencode_collector_sqlite_days_filter(tmp_path: Path) -> None:
+    """Test that the SQLite collector respects the days filter."""
+    import sqlite3
+    from datetime import datetime, timedelta, timezone
+
+    db_path = tmp_path / "opencode.db"
+    con = sqlite3.connect(str(db_path))
+    con.executescript("""
+        CREATE TABLE session (
+            id TEXT PRIMARY KEY,
+            directory TEXT NOT NULL,
+            time_created INTEGER NOT NULL,
+            time_updated INTEGER NOT NULL
+        );
+        CREATE TABLE message (
+            id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL,
+            time_created INTEGER NOT NULL,
+            time_updated INTEGER NOT NULL,
+            data TEXT NOT NULL
+        );
+    """)
+
+    now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+    old_ms = int((datetime.now(timezone.utc) - timedelta(days=60)).timestamp() * 1000)
+
+    con.execute(
+        "INSERT INTO session (id, directory, time_created, time_updated) VALUES (?, ?, ?, ?)",
+        ("sess-recent", "/recent", now_ms, now_ms),
+    )
+    con.execute(
+        "INSERT INTO session (id, directory, time_created, time_updated) VALUES (?, ?, ?, ?)",
+        ("sess-old", "/old", old_ms, old_ms),
+    )
+    con.commit()
+    con.close()
+
+    collector = OpenCodeCollector(data_dir=tmp_path)
+    sessions = collector.collect(days=30)
+    assert len(sessions) == 1
+    assert sessions[0].session_id == "sess-recent"
 
 
 def test_collect_accepts_days_kwarg_for_all_collectors(tmp_path: Path) -> None:
