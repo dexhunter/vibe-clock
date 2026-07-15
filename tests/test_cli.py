@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 from click.testing import CliRunner
 
-from vibe_clock.cli import push, render, share, unshare
+from vibe_clock.cli import init, push, render, schedule, share, unshare
 from vibe_clock.config import Config
 from vibe_clock.models import AgentStats, Session, TokenUsage
 
@@ -42,6 +42,25 @@ def test_local_render_keeps_full_configured_stats(monkeypatch, tmp_path) -> None
     svg = (tmp_path / "vibe-clock-token-bars.svg").read_text()
     assert "gpt-private-model" in svg
     assert "No token data" not in svg
+
+
+def test_init_detects_gemini_cli(monkeypatch, tmp_path) -> None:
+    config = Config()
+    config.paths.claude_code = tmp_path / "missing-claude"
+    config.paths.codex = tmp_path / "missing-codex"
+    config.paths.gemini_cli = tmp_path / "gemini"
+    config.paths.opencode = tmp_path / "missing-opencode"
+    config.paths.gemini_cli.mkdir()
+    saves = []
+
+    monkeypatch.setattr("vibe_clock.cli.Config", lambda: config)
+    monkeypatch.setattr("vibe_clock.cli.click.prompt", lambda *args, **kwargs: "")
+    monkeypatch.setattr("vibe_clock.cli.save_config", lambda current: saves.append(current))
+
+    result = CliRunner().invoke(init)
+
+    assert result.exit_code == 0
+    assert saves[-1].enabled_agents == ["gemini_cli"]
 
 
 def test_push_requires_explicit_public_opt_in(monkeypatch) -> None:
@@ -116,3 +135,40 @@ def test_unshare_deletes_gist_and_disables_updates(monkeypatch) -> None:
     assert result.exit_code == 0
     assert saves[-1].github.gist_id == ""
     assert saves[-1].privacy.public_sharing_enabled is False
+
+
+def test_unshare_clears_local_state_when_gist_is_already_gone(monkeypatch) -> None:
+    config = Config()
+    config.github.token = "configured"
+    config.github.gist_id = "missing-gist"
+    config.privacy.public_sharing_enabled = True
+    saves = []
+    monkeypatch.setattr("vibe_clock.cli.load_config", lambda: config)
+    monkeypatch.setattr("vibe_clock.cli.save_config", lambda current: saves.append(current))
+    monkeypatch.setattr(
+        "httpx.delete",
+        lambda *args, **kwargs: SimpleNamespace(status_code=404, text="Not Found"),
+    )
+
+    result = CliRunner().invoke(unshare, ["--yes"])
+
+    assert result.exit_code == 0
+    assert saves[-1].github.gist_id == ""
+    assert saves[-1].privacy.public_sharing_enabled is False
+
+
+def test_schedule_rejects_out_of_range_time(monkeypatch) -> None:
+    config = Config()
+    config.github.token = "configured"
+    config.privacy.public_sharing_enabled = True
+    monkeypatch.setattr("vibe_clock.cli.load_config", lambda: config)
+
+    def fail_scheduler():
+        raise AssertionError("invalid time must be rejected before scheduler selection")
+
+    monkeypatch.setattr("vibe_clock.scheduler.get_scheduler", fail_scheduler)
+
+    result = CliRunner().invoke(schedule, ["--time", "99:99"])
+
+    assert result.exit_code == 1
+    assert "Invalid time format" in result.output

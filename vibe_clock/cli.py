@@ -20,7 +20,7 @@ from rich.text import Text
 
 from . import __version__
 from .aggregator import aggregate
-from .collectors import get_collectors
+from .collectors import COLLECTOR_MAP, get_collectors
 from .formatting import format_bar, format_hourly_chart, format_hours, format_number
 from .config import Config, load_config, save_config
 from .models import AgentStats
@@ -61,15 +61,12 @@ def init() -> None:
 
     # Auto-detect available agents
     available = []
-    for name, path in [
-        ("claude_code", config.paths.claude_code),
-        ("codex", config.paths.codex),
-        ("opencode", config.paths.opencode),
-    ]:
-        if path.exists():
+    for name in COLLECTOR_MAP:
+        path = getattr(config.paths, name, None)
+        if path and path.exists():
             available.append(name)
             console.print(f"  [green]✓[/green] Found {name} at {path}")
-        else:
+        elif path:
             console.print(f"  [dim]✗ {name} not found at {path}[/dim]")
 
     config.enabled_agents = available
@@ -539,7 +536,7 @@ def unshare(assume_yes: bool) -> None:
         },
         timeout=30,
     )
-    if response.status_code != 204:
+    if response.status_code not in (204, 404):
         console.print(f"[red]GitHub API error ({response.status_code}): {response.text}[/red]")
         sys.exit(1)
 
@@ -560,9 +557,6 @@ def unshare(assume_yes: bool) -> None:
 @click.option("--force", is_flag=True, help="Overwrite existing schedule.")
 def schedule(interval: str, run_time: str | None, force: bool) -> None:
     """Schedule automatic vibe-clock push."""
-    import re
-    from datetime import datetime, timezone
-
     if run_time is None:
         utc_midnight = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
         run_time = utc_midnight.astimezone().strftime("%H:%M")
@@ -578,7 +572,9 @@ def schedule(interval: str, run_time: str | None, force: bool) -> None:
         console.print("[yellow]Run 'vibe-clock share' before scheduling public updates.[/yellow]")
         return
 
-    if not re.match(r"^\d{1,2}:\d{2}$", run_time):
+    try:
+        datetime.strptime(run_time, "%H:%M")
+    except ValueError:
         console.print("[red]Invalid time format. Use HH:MM (e.g. 08:00, 23:30).[/red]")
         sys.exit(1)
 
