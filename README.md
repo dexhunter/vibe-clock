@@ -13,11 +13,6 @@
 </p>
 <p align="center">
   <img src="https://raw.githubusercontent.com/dexhunter/dexhunter/master/images/vibe-clock-donut.svg" alt="Model Usage" width="400" />
-  <img src="https://raw.githubusercontent.com/dexhunter/dexhunter/master/images/vibe-clock-token-bars.svg" alt="Token Usage by Model" width="400" />
-</p>
-<p align="center">
-  <img src="https://raw.githubusercontent.com/dexhunter/dexhunter/master/images/vibe-clock-hourly.svg" alt="Activity by Hour" width="400" />
-  <img src="https://raw.githubusercontent.com/dexhunter/dexhunter/master/images/vibe-clock-weekly.svg" alt="Activity by Day of Week" width="400" />
 </p>
 
 ---
@@ -39,19 +34,15 @@ vibe-clock summary       # see your stats in the terminal
 
 ## Privacy & Security
 
-**Your code never leaves your machine.** vibe-clock reads only session metadata (timestamps, token counts, model names) from local JSONL logs. Before anything is pushed:
+**Everything stays local until you explicitly run `vibe-clock share`.** The default public profile covers the last seven complete UTC days and contains only:
 
-1. **Sanitizer strips all PII** — file paths, project names, usernames, and code are removed ([`sanitizer.py`](vibe_clock/sanitizer.py))
-2. **Projects are anonymized** — real names become "Project A", "Project B"
-3. **`--dry-run` lets you inspect** exactly what will be pushed before it goes anywhere
+- Session and active-day counts
+- Known agent names
+- Normalized model families such as OpenAI, Claude, and Gemini
 
-**What is pushed** (to your own public gist):
-- Session counts, message counts, durations
-- Token usage totals per model
-- Model and agent names
-- Daily activity aggregates
+The payload is built from a fixed allowlist in [`sanitizer.py`](vibe_clock/sanitizer.py). Exact dates, message counts, token counts, hourly patterns, and anonymous project aliases are separate opt-ins. Raw model IDs are always reduced to public families.
 
-**What is NEVER pushed**: file paths, project names, message content, code snippets, git info, or any PII.
+**Never shared:** paths, real project names, prompts, responses, code, git data, session IDs, host data, durations, or raw timestamps. Run `vibe-clock push --dry-run` to inspect the exact payload. Public Gist updates retain revision history; `vibe-clock unshare` deletes the Gist and disables future updates.
 
 ## Configurable Charts
 
@@ -59,28 +50,37 @@ Generate only the charts you want with `--type`:
 
 ```bash
 vibe-clock render --type card,donut           # just these two
-vibe-clock render --type all                  # all 7 charts (default)
+vibe-clock render --type all                  # all 7 charts
 ```
 
 | Chart | File | Description |
 |-------|------|-------------|
 | `card` | `vibe-clock-card.svg` | Summary stats card |
-| `heatmap` | `vibe-clock-heatmap.svg` | Daily activity heatmap |
+| `heatmap` | `vibe-clock-heatmap.svg` | Daily activity heatmap (`share --daily-activity`) |
 | `donut` | `vibe-clock-donut.svg` | Model usage breakdown |
-| `bars` | `vibe-clock-bars.svg` | Project session bars |
-| `token_bars` | `vibe-clock-token-bars.svg` | Token usage by model |
-| `hourly` | `vibe-clock-hourly.svg` | Activity by hour of day |
-| `weekly` | `vibe-clock-weekly.svg` | Activity by day of week |
+| `bars` | `vibe-clock-bars.svg` | Anonymous project sessions (`share --project-aliases`) |
+| `token_bars` | `vibe-clock-token-bars.svg` | Token usage by family (`share --token-counts`) |
+| `hourly` | `vibe-clock-hourly.svg` | Activity by hour (`share --time-patterns`) |
+| `weekly` | `vibe-clock-weekly.svg` | Activity by weekday (`share --daily-activity`) |
 
 ## GitHub Actions Setup
 
 Add to your `<username>/<username>` profile repo to auto-update SVGs daily.
 
-### 1. Push your stats
+### 1. Preview and explicitly share
 
 ```bash
-vibe-clock push          # creates a public gist with sanitized data
+vibe-clock push --dry-run
+vibe-clock share         # confirms before creating a public Gist
 # Note the gist ID printed
+```
+
+Upgrading from an older release with an existing Gist? Run `vibe-clock unshare` first to delete the legacy revision history, then run `vibe-clock share` and update the repository secret with the new Gist ID.
+
+Optional fields must be selected explicitly, for example:
+
+```bash
+vibe-clock share --daily-activity --token-counts
 ```
 
 ### 2. Add the secret
@@ -113,9 +113,7 @@ jobs:
 
 ```html
 <img src="images/vibe-clock-card.svg" alt="Vibe Clock Stats" />
-<img src="images/vibe-clock-heatmap.svg" alt="Activity Heatmap" />
 <img src="images/vibe-clock-donut.svg" alt="Model Usage" />
-<img src="images/vibe-clock-bars.svg" alt="Projects" />
 ```
 
 ### 5. Run it
@@ -129,7 +127,7 @@ Go to **Actions** tab → "Update Vibe Clock Stats" → **Run workflow**
 | `gist_id` | *required* | Gist ID containing `vibe-clock-data.json` |
 | `theme` | `dark` | `dark` or `light` |
 | `output_dir` | `./images` | Where to write SVG files |
-| `chart_types` | `all` | Comma-separated: `card,heatmap,donut,bars,token_bars,hourly,weekly` or `all` |
+| `chart_types` | `card,donut` | Comma-separated: `card,heatmap,donut,bars,token_bars,hourly,weekly` or `all` |
 | `commit` | `true` | Auto-commit generated SVGs |
 | `commit_message` | `chore: update vibe-clock stats` | Commit message |
 
@@ -138,7 +136,7 @@ Go to **Actions** tab → "Update Vibe Clock Stats" → **Run workflow**
 ```
 You (local)                    GitHub
 ─────────                      ──────
-vibe-clock push  ──▶  Gist (sanitized JSON)
+vibe-clock share ──▶  Gist (allowlisted JSON)
                      │
                      └──▶  workflow_dispatch
                               │
@@ -165,8 +163,10 @@ vibe-clock push  ──▶  Gist (sanitized JSON)
 | `vibe-clock status` | Show current configuration and connection status |
 | `vibe-clock render` | Generate SVG visualizations locally |
 | `vibe-clock export` | Export raw stats as JSON |
-| `vibe-clock push` | Push sanitized stats to a GitHub gist and trigger profile repo render |
-| `vibe-clock push --dry-run` | Preview what would be pushed |
+| `vibe-clock share` | Preview, confirm, and enable a public GitHub Gist |
+| `vibe-clock push` | Update a public share that was previously enabled |
+| `vibe-clock push --dry-run` | Preview the exact public allowlist without pushing |
+| `vibe-clock unshare` | Delete the public Gist and disable future updates |
 | `vibe-clock schedule` | Auto-schedule periodic push (launchd / systemd / cron) |
 | `vibe-clock unschedule` | Remove the scheduled push task |
 
@@ -178,6 +178,8 @@ Environment variable overrides:
 - `GITHUB_TOKEN` — GitHub PAT with `gist` scope
 - `VIBE_CLOCK_GIST_ID` — Gist ID for push/pull
 - `VIBE_CLOCK_DAYS` — Number of days to aggregate
+
+Public sharing defaults are stored under `[privacy]`: seven complete days, with daily activity, message counts, token counts, time patterns, and project aliases disabled unless explicitly selected with `vibe-clock share`.
 
 ## License
 

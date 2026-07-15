@@ -37,7 +37,7 @@ Local machine                  GitHub
 ```
 
 Two-stage pipeline:
-1. **Local**: `vibe-clock push` collects sessions from agent data dirs, aggregates, sanitizes (strips all PII/paths/project names), and pushes safe JSON to a GitHub Gist.
+1. **Local**: `vibe-clock share` previews a seven-complete-day allowlist, asks for explicit consent, and creates a public GitHub Gist. Later `vibe-clock push` runs update that share.
 2. **Remote**: A GitHub Actions workflow in the user's `<username>/<username>` profile repo fetches the gist, generates SVGs via `vibe-clock render --from-json`, and commits them.
 
 ## Prerequisites
@@ -84,19 +84,27 @@ vibe-clock summary
 
 This shows a terminal table with session counts, total time, token usage, favorite model, and peak hour. If no data appears, check that agent data directories exist and contain session files.
 
-## Step 4: Push sanitized stats to GitHub Gist
+## Step 4: Explicitly share safe stats to GitHub Gist
 
 First do a dry run to preview what will be pushed:
 ```bash
 vibe-clock push --dry-run
 ```
 
-Verify the output contains ONLY aggregated numbers — no file paths, project names, or personal information. Then push:
+Verify the output contains only session counts, active days, known agents, and normalized model families. Then opt in:
 ```bash
-vibe-clock push
+vibe-clock share
 ```
 
-This creates a **public** gist named `vibe-clock-data.json`. Note the gist ID printed — it is automatically saved to the config file.
+This previews the data again and asks for confirmation before creating a **public** gist named `vibe-clock-data.json`. Note the gist ID printed — it is automatically saved to the config file.
+
+If an older release already configured a Gist, `share` fails closed. Run `vibe-clock unshare` to delete the legacy Gist and its revisions, then run `share` and update the repository secret with the new Gist ID.
+
+Daily activity, message counts, token counts, time patterns, and anonymous project aliases are off by default. Enable only what the user requests, for example:
+
+```bash
+vibe-clock share --daily-activity --token-counts
+```
 
 To retrieve the gist ID later:
 ```bash
@@ -148,11 +156,6 @@ Add this section to the profile repo's `README.md`:
 </p>
 <p align="center">
   <img src="images/vibe-clock-donut.svg" alt="Model Usage" />
-  <img src="images/vibe-clock-token-bars.svg" alt="Token Usage by Model" />
-</p>
-<p align="center">
-  <img src="images/vibe-clock-hourly.svg" alt="Activity by Hour" />
-  <img src="images/vibe-clock-weekly.svg" alt="Activity by Day of Week" />
 </p>
 ```
 
@@ -172,6 +175,7 @@ gh workflow run vibe-clock.yml --repo <username>/<username>
 - Run `vibe-clock push` locally whenever you want to update stats (e.g., daily via cron or manually)
 - The GitHub Actions workflow runs daily at midnight UTC and regenerates SVGs automatically
 - To update stats on demand: push locally, then trigger the workflow
+- Run `vibe-clock unshare` to delete the public Gist and disable future public updates. Existing SVG commits in the profile repository are separate and must be removed there if needed.
 
 ## Configuration Reference
 
@@ -198,13 +202,20 @@ enabled = ["claude_code", "codex", "opencode"]
 exclude_projects = []
 exclude_date_ranges = []
 anonymize_projects = true
+public_sharing_enabled = false
+public_days = 7
+share_daily_activity = false
+share_message_counts = false
+share_token_counts = false
+share_time_patterns = false
+share_project_aliases = false
 ```
 
 Environment variable overrides (used when TOML value is empty): `GITHUB_TOKEN`, `VIBE_CLOCK_GIST_ID`, `VIBE_CLOCK_DAYS`.
 
 ## Privacy
 
-Only aggregated numbers leave the machine. Never pushed: file paths, project names, message content, code, git info, or PII. Use `--dry-run` to verify before any push.
+Nothing leaves the machine until `vibe-clock share` is confirmed. The default payload is allowlisted to sessions, active days, known agents, and normalized model families. Never pushed: paths, real project names, prompts, responses, code, git info, session IDs, host data, durations, raw timestamps, or exact model IDs. Use `--dry-run` to verify the exact payload before sharing.
 
 ## Troubleshooting
 

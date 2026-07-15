@@ -24,5 +24,6 @@ class BaseCollector(ABC):
         ...
 
     def _cutoff_timestamp(self, days: int) -> float:
+        """Return a Unix timestamp for `days` ago (for mtime comparison)."""
         cutoff = datetime.now(timezone.utc) - timedelta(days=days)
         return cutoff.timestamp()

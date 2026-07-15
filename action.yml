@@ -20,7 +20,7 @@ inputs:
   chart_types:
     description: 'Chart types to generate (comma-separated or "all")'
     required: false
-    default: 'all'
+    default: 'card,donut'
   commit:
     description: 'Auto-commit generated SVGs'
     required: false

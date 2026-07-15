@@ -25,7 +25,7 @@ def render_bars(stats: AgentStats, theme: str = "dark") -> str:
     if not projects:
         return _empty_bars(bg, border, text_color, title_color)
 
-    max_minutes = max(p.total_minutes for p in projects) or 1
+    max_sessions = max(p.session_count for p in projects) or 1
     bar_width = 300
     bar_height = 18
     row_height = 32
@@ -37,11 +37,9 @@ def render_bars(stats: AgentStats, theme: str = "dark") -> str:
     rows = []
     for i, p in enumerate(projects):
         y = 50 + i * row_height
-        pct = p.total_minutes / max_minutes
+        pct = p.session_count / max_sessions
         w = max(pct * bar_width, 2)
         color = _AGENT_COLORS.get(p.agent, "#8b949e")
-        hours = p.total_minutes / 60
-
         rows.append(
             f'<text x="{label_x}" y="{y + 13}" fill="{text_color}" '
             f'font-size="11">{escape(p.project)}</text>'
@@ -50,7 +48,7 @@ def render_bars(stats: AgentStats, theme: str = "dark") -> str:
             f'<rect x="{bar_x}" y="{y}" width="{w:.0f}" '
             f'height="{bar_height}" rx="3" fill="{color}"/>'
             f'<text x="{bar_x + bar_width + 8}" y="{y + 13}" '
-            f'fill="{muted}" font-size="10">{hours:.1f}h</text>'
+            f'fill="{muted}" font-size="10">{p.session_count}</text>'
         )
 
     # Legend

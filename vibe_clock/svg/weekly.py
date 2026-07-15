@@ -22,11 +22,9 @@ def render_weekly(stats: AgentStats, theme: str = "dark") -> str:
 
     # Aggregate daily data by day-of-week (0=Mon, 6=Sun)
     dow_sessions: dict[int, int] = defaultdict(int)
-    dow_minutes: dict[int, float] = defaultdict(float)
     for d in stats.daily:
         dow = d.date.weekday()
         dow_sessions[dow] += d.session_count
-        dow_minutes[dow] += d.total_minutes
 
     max_sessions = max(dow_sessions.values()) if dow_sessions else 1
 
@@ -46,11 +44,8 @@ def render_weekly(stats: AgentStats, theme: str = "dark") -> str:
     for i in range(7):
         x = chart_left + i * (bar_w + bar_gap)
         sessions = dow_sessions.get(i, 0)
-        minutes = dow_minutes.get(i, 0)
         bar_h = (sessions / max_sessions) * chart_height if max_sessions else 0
         y = bottom - bar_h
-
-        hours = minutes / 60
 
         # Background
         bars.append(
@@ -62,7 +57,7 @@ def render_weekly(stats: AgentStats, theme: str = "dark") -> str:
             bars.append(
                 f'<rect x="{x:.1f}" y="{y:.1f}" width="{bar_w:.1f}" '
                 f'height="{bar_h:.1f}" rx="3" fill="{bar_color}">'
-                f'<title>{escape(_DAYS[i])}: {sessions} sessions, {hours:.1f}h</title></rect>'
+                f'<title>{escape(_DAYS[i])}: {sessions} sessions</title></rect>'
             )
             # Count label above bar
             bars.append(

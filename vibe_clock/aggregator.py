@@ -17,13 +17,19 @@ from .models import (
 )
 
 
-def aggregate(sessions: list[Session], config: Config) -> AgentStats:
+def aggregate(
+    sessions: list[Session],
+    config: Config,
+    *,
+    end_at: datetime | None = None,
+) -> AgentStats:
     """Aggregate raw sessions into AgentStats, applying privacy filters."""
     days = config.default_days
-    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    window_end = end_at or datetime.now(timezone.utc)
+    cutoff = window_end - timedelta(days=days)
 
     # Filter by date range
-    filtered = [s for s in sessions if s.start_time >= cutoff]
+    filtered = [s for s in sessions if cutoff <= s.start_time < window_end]
 
     # Filter excluded date ranges
     for dr in config.privacy.exclude_date_ranges:
@@ -159,6 +165,7 @@ def aggregate(sessions: list[Session], config: Config) -> AgentStats:
 
     return AgentStats(
         days_covered=days,
+        active_days=len(daily),
         total_sessions=len(filtered),
         total_messages=total_messages,
         total_minutes=round(sum(s.duration_minutes for s in filtered), 1),

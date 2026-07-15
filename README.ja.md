@@ -13,11 +13,6 @@
 </p>
 <p align="center">
   <img src="https://raw.githubusercontent.com/dexhunter/dexhunter/master/images/vibe-clock-donut.svg" alt="モデル使用状況" width="400" />
-  <img src="https://raw.githubusercontent.com/dexhunter/dexhunter/master/images/vibe-clock-token-bars.svg" alt="モデル別トークン使用量" width="400" />
-</p>
-<p align="center">
-  <img src="https://raw.githubusercontent.com/dexhunter/dexhunter/master/images/vibe-clock-hourly.svg" alt="時間帯別アクティビティ" width="400" />
-  <img src="https://raw.githubusercontent.com/dexhunter/dexhunter/master/images/vibe-clock-weekly.svg" alt="曜日別アクティビティ" width="400" />
 </p>
 
 ---
@@ -39,19 +34,15 @@ vibe-clock summary       # ターミナルで統計情報を確認
 
 ## プライバシーとセキュリティ
 
-**あなたのコードがマシンから外に出ることはありません。** vibe-clockはローカルのJSONLログからセッションメタデータ（タイムスタンプ、トークン数、モデル名）のみを読み取ります。データがプッシュされる前に：
+**`vibe-clock share` を明示的に実行するまで、データはローカルに留まります。** デフォルトの公開プロフィールは、直近7日間の完了したUTC日について次の情報だけを含みます：
 
-1. **サニタイザーがすべての個人情報を除去** — ファイルパス、プロジェクト名、ユーザー名、コードが削除されます（[`sanitizer.py`](vibe_clock/sanitizer.py)）
-2. **プロジェクト名は匿名化** — 実名は「Project A」「Project B」に変換されます
-3. **`--dry-run` で事前確認可能** — プッシュされる内容を正確に確認できます
+- セッション数とアクティブ日数
+- 既知のエージェント名
+- OpenAI、Claude、Geminiなどに正規化されたモデルファミリー
 
-**プッシュされるデータ**（あなた自身のパブリックgistへ）：
-- セッション数、メッセージ数、持続時間
-- モデルごとのトークン使用量合計
-- モデル名とエージェント名
-- 日次アクティビティの集計
+公開ペイロードは固定の許可リストから作成されます。正確な日付、メッセージ数、トークン数、時間パターン、匿名プロジェクト別名は個別のオプトインです。
 
-**プッシュされないデータ**：ファイルパス、プロジェクト名、メッセージ内容、コードスニペット、git情報、その他すべての個人情報。
+**決して公開されない情報**：パス、実際のプロジェクト名、プロンプト、応答、コード、git情報、セッションID、ホスト情報、持続時間、生のタイムスタンプ、正確なモデルID。`vibe-clock unshare` は公開Gistを削除し、今後の更新を無効にします。
 
 ## カスタマイズ可能なチャート
 
@@ -59,7 +50,7 @@ vibe-clock summary       # ターミナルで統計情報を確認
 
 ```bash
 vibe-clock render --type card,donut           # この2つだけ
-vibe-clock render --type all                  # 全7種類のチャート（デフォルト）
+vibe-clock render --type all                  # 全7種類のチャート
 ```
 
 | チャート | ファイル | 説明 |
@@ -79,7 +70,8 @@ vibe-clock render --type all                  # 全7種類のチャート（デ�
 ### 1. 統計データをプッシュ
 
 ```bash
-vibe-clock push          # サニタイズされたデータを含むパブリックgistを作成
+vibe-clock push --dry-run # 公開データをプレビュー
+vibe-clock share         # 確認後にパブリックgistを作成
 # 表示されたgist IDをメモしてください
 ```
 
@@ -129,7 +121,7 @@ jobs:
 | `gist_id` | *必須* | `vibe-clock-data.json` を含むGist ID |
 | `theme` | `dark` | `dark` または `light` |
 | `output_dir` | `./images` | SVGファイルの出力先ディレクトリ |
-| `chart_types` | `all` | カンマ区切り：`card,heatmap,donut,bars,token_bars,hourly,weekly` または `all` |
+| `chart_types` | `card,donut` | カンマ区切り：`card,heatmap,donut,bars,token_bars,hourly,weekly` または `all` |
 | `commit` | `true` | 生成されたSVGを自動コミット |
 | `commit_message` | `chore: update vibe-clock stats` | コミットメッセージ |
 
@@ -138,7 +130,7 @@ jobs:
 ```
 あなた（ローカル）              GitHub
 ─────────                      ──────
-vibe-clock push  ──▶  Gist（サニタイズ済みJSON）
+vibe-clock share ──▶  Gist（許可リストJSON）
                      │
                      └──▶  workflow_dispatch
                               │
@@ -165,8 +157,10 @@ vibe-clock push  ──▶  Gist（サニタイズ済みJSON）
 | `vibe-clock status` | 現在の設定と接続状態を表示 |
 | `vibe-clock render` | SVGビジュアライゼーションをローカルで生成 |
 | `vibe-clock export` | 生の統計データをJSONでエクスポート |
-| `vibe-clock push` | サニタイズされた統計データをGitHub gistにプッシュし、プロフィールリポジトリのレンダリングをトリガー |
-| `vibe-clock push --dry-run` | プッシュされる内容をプレビュー |
+| `vibe-clock share` | プレビュー、確認して公開GitHub Gistを有効化 |
+| `vibe-clock push` | 明示的に有効化された公開共有を更新 |
+| `vibe-clock push --dry-run` | 公開許可リストをプレビュー |
+| `vibe-clock unshare` | 公開Gistを削除し、今後の更新を無効化 |
 | `vibe-clock schedule` | 定期プッシュを自動スケジュール（launchd / systemd / cron） |
 | `vibe-clock unschedule` | スケジュールされたプッシュタスクを削除 |
 

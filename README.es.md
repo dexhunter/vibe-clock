@@ -13,11 +13,6 @@
 </p>
 <p align="center">
   <img src="https://raw.githubusercontent.com/dexhunter/dexhunter/master/images/vibe-clock-donut.svg" alt="Uso de modelos" width="400" />
-  <img src="https://raw.githubusercontent.com/dexhunter/dexhunter/master/images/vibe-clock-token-bars.svg" alt="Uso de tokens por modelo" width="400" />
-</p>
-<p align="center">
-  <img src="https://raw.githubusercontent.com/dexhunter/dexhunter/master/images/vibe-clock-hourly.svg" alt="Actividad por hora" width="400" />
-  <img src="https://raw.githubusercontent.com/dexhunter/dexhunter/master/images/vibe-clock-weekly.svg" alt="Actividad por día de la semana" width="400" />
 </p>
 
 ---
@@ -39,19 +34,15 @@ vibe-clock summary       # ve tus estadísticas en la terminal
 
 ## Privacidad y seguridad
 
-**Tu código nunca sale de tu máquina.** vibe-clock solo lee metadatos de sesión (marcas de tiempo, conteos de tokens, nombres de modelos) de los logs JSONL locales. Antes de que se envíe cualquier dato:
+**Todo permanece local hasta que ejecutas explícitamente `vibe-clock share`.** El perfil público predeterminado solo contiene, para los últimos siete días UTC completos:
 
-1. **El sanitizador elimina toda información personal** — rutas de archivos, nombres de proyectos, nombres de usuario y código son removidos ([`sanitizer.py`](vibe_clock/sanitizer.py))
-2. **Los proyectos se anonimizan** — los nombres reales se convierten en "Project A", "Project B"
-3. **`--dry-run` te permite inspeccionar** exactamente qué se enviará antes de hacerlo
+- Conteos de sesiones y días activos
+- Nombres de agentes conocidos
+- Familias de modelos normalizadas como OpenAI, Claude y Gemini
 
-**Lo que se envía** (a tu propio gist público):
-- Conteos de sesiones, conteos de mensajes, duraciones
-- Totales de uso de tokens por modelo
-- Nombres de modelos y agentes
-- Agregados de actividad diaria
+El contenido público se construye desde una lista permitida fija. Fechas exactas, mensajes, tokens, patrones horarios y alias de proyectos requieren opciones explícitas.
 
-**Lo que NUNCA se envía**: rutas de archivos, nombres de proyectos, contenido de mensajes, fragmentos de código, información de git o cualquier información personal.
+**Nunca se publica**: rutas, nombres reales de proyectos, prompts, respuestas, código, datos de git, IDs de sesión, datos del equipo, duraciones, marcas de tiempo sin procesar ni IDs exactos de modelos. `vibe-clock unshare` elimina el Gist público y desactiva futuras actualizaciones.
 
 ## Gráficos configurables
 
@@ -59,7 +50,7 @@ Genera solo los gráficos que necesites con `--type`:
 
 ```bash
 vibe-clock render --type card,donut           # solo estos dos
-vibe-clock render --type all                  # los 7 gráficos (por defecto)
+vibe-clock render --type all                  # los 7 gráficos
 ```
 
 | Gráfico | Archivo | Descripción |
@@ -79,7 +70,8 @@ Agrega esto a tu repositorio de perfil `<username>/<username>` para actualizar l
 ### 1. Envía tus estadísticas
 
 ```bash
-vibe-clock push          # crea un gist público con datos sanitizados
+vibe-clock push --dry-run # previsualiza los datos públicos
+vibe-clock share         # crea un gist público tras confirmar
 # Anota el ID del gist que se muestra
 ```
 
@@ -129,7 +121,7 @@ Ve a la pestaña **Actions** → "Update Vibe Clock Stats" → **Run workflow**
 | `gist_id` | *requerido* | ID del Gist que contiene `vibe-clock-data.json` |
 | `theme` | `dark` | `dark` o `light` |
 | `output_dir` | `./images` | Directorio de salida para archivos SVG |
-| `chart_types` | `all` | Separados por coma: `card,heatmap,donut,bars,token_bars,hourly,weekly` o `all` |
+| `chart_types` | `card,donut` | Separados por coma: `card,heatmap,donut,bars,token_bars,hourly,weekly` o `all` |
 | `commit` | `true` | Auto-commit de los SVGs generados |
 | `commit_message` | `chore: update vibe-clock stats` | Mensaje del commit |
 
@@ -138,7 +130,7 @@ Ve a la pestaña **Actions** → "Update Vibe Clock Stats" → **Run workflow**
 ```
 Tú (local)                     GitHub
 ─────────                      ──────
-vibe-clock push  ──▶  Gist (JSON sanitizado)
+vibe-clock share ──▶  Gist (JSON permitido)
                      │
                      └──▶  workflow_dispatch
                               │
@@ -165,8 +157,10 @@ vibe-clock push  ──▶  Gist (JSON sanitizado)
 | `vibe-clock status` | Muestra la configuración actual y el estado de conexión |
 | `vibe-clock render` | Genera visualizaciones SVG localmente |
 | `vibe-clock export` | Exporta estadísticas sin procesar como JSON |
-| `vibe-clock push` | Envía estadísticas sanitizadas a un gist de GitHub y dispara el renderizado del repositorio de perfil |
-| `vibe-clock push --dry-run` | Previsualiza lo que se enviaría |
+| `vibe-clock share` | Previsualiza, confirma y activa un Gist público |
+| `vibe-clock push` | Actualiza una publicación activada explícitamente |
+| `vibe-clock push --dry-run` | Previsualiza la lista pública permitida |
+| `vibe-clock unshare` | Elimina el Gist público y desactiva futuras actualizaciones |
 | `vibe-clock schedule` | Programar push periódico automático (launchd / systemd / cron) |
 | `vibe-clock unschedule` | Eliminar la tarea de push programada |
 

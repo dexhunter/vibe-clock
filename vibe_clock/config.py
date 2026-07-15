@@ -37,6 +37,13 @@ class PrivacyConfig(BaseModel):
     exclude_projects: list[str] = Field(default_factory=list)
     exclude_date_ranges: list[list[str]] = Field(default_factory=list)
     anonymize_projects: bool = True
+    public_sharing_enabled: bool = False
+    public_days: int = 7
+    share_daily_activity: bool = False
+    share_message_counts: bool = False
+    share_token_counts: bool = False
+    share_time_patterns: bool = False
+    share_project_aliases: bool = False
 
 
 class ScheduleConfig(BaseModel):
@@ -123,6 +130,13 @@ def save_config(config: Config) -> None:
         f'exclude_projects = {config.privacy.exclude_projects}',
         f'exclude_date_ranges = {config.privacy.exclude_date_ranges}',
         f'anonymize_projects = {"true" if config.privacy.anonymize_projects else "false"}',
+        f'public_sharing_enabled = {"true" if config.privacy.public_sharing_enabled else "false"}',
+        f'public_days = {config.privacy.public_days}',
+        f'share_daily_activity = {"true" if config.privacy.share_daily_activity else "false"}',
+        f'share_message_counts = {"true" if config.privacy.share_message_counts else "false"}',
+        f'share_token_counts = {"true" if config.privacy.share_token_counts else "false"}',
+        f'share_time_patterns = {"true" if config.privacy.share_time_patterns else "false"}',
+        f'share_project_aliases = {"true" if config.privacy.share_project_aliases else "false"}',
         "",
         "[schedule]",
         f'enabled = {"true" if config.schedule.enabled else "false"}',

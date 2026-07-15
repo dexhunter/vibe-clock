@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import sys
+from datetime import datetime, time, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -22,7 +24,7 @@ from .collectors import get_collectors
 from .formatting import format_bar, format_hourly_chart, format_hours, format_number
 from .config import Config, load_config, save_config
 from .models import AgentStats
-from .sanitizer import preview, sanitize
+from .sanitizer import preview, public_payload
 from .svg.bars import render_bars
 from .svg.card import render_card
 from .svg.donut import render_donut
@@ -274,7 +276,14 @@ def status(days: int | None) -> None:
 
 
 @cli.command()
-@click.option("--type", "-t", "chart_type", default="all", help="Chart type: card, heatmap, donut, bars, all")
+@click.option(
+    "--type",
+    "-t",
+    "chart_type",
+    default="card,donut",
+    show_default=True,
+    help="Chart types: card, donut, heatmap, weekly, hourly, bars, token_bars, all",
+)
 @click.option("--output", "-o", "output_dir", default=".", help="Output directory for SVG files.")
 @click.option("--from-json", "json_path", default=None, help="Generate from exported JSON instead of collecting.")
 @click.option("--theme", default=None, help="Theme: dark or light.")
@@ -289,10 +298,9 @@ def render(chart_type: str, output_dir: str, json_path: str | None, theme: str |
     else:
         collectors = get_collectors(config)
         all_sessions = []
-        for c in collectors:
-            all_sessions.extend(c.collect(days=config.default_days))
+        for collector in collectors:
+            all_sessions.extend(collector.collect(days=config.default_days))
         stats = aggregate(all_sessions, config)
-        stats = sanitize(stats, config)
 
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -347,38 +355,34 @@ def _trigger_render(client: httpx.Client, profile_repo: str) -> None:
         console.print(f"[yellow]Could not trigger workflow ({dispatch_resp.status_code})[/yellow]")
 
 
-@cli.command()
-@click.option("--dry-run", is_flag=True, help="Preview what would be pushed without actually pushing.")
-@click.option("--days", "-d", default=None, type=int)
-def push(dry_run: bool, days: int | None) -> None:
-    """Push sanitized stats to a GitHub gist."""
-    import httpx
+def _collect_public_stats(config: Config) -> AgentStats:
+    """Collect the last complete public reporting window in UTC."""
+    public_config = config.model_copy(deep=True)
+    public_config.default_days = config.privacy.public_days
+    window_end = datetime.combine(
+        datetime.now(timezone.utc).date(), time.min, tzinfo=timezone.utc
+    )
 
-    config = load_config()
-    if days:
-        config.default_days = days
+    collectors = get_collectors(public_config)
+    all_sessions = []
+    for collector in collectors:
+        sessions = collector.collect(days=public_config.default_days + 1)
+        console.print(f"  [dim]{collector.agent_name}: {len(sessions)} sessions scanned[/dim]")
+        all_sessions.extend(sessions)
+
+    return aggregate(all_sessions, public_config, end_at=window_end)
+
+
+def _publish_public_stats(config: Config, stats: AgentStats) -> None:
+    """Publish an already-sanitized, allowlisted public snapshot."""
+    import httpx
 
     token = config.github.token
     if not token:
         console.print("[red]No GitHub token configured. Run 'vibe-clock init' or set GITHUB_TOKEN.[/red]")
         sys.exit(1)
 
-    # Collect and aggregate
-    collectors = get_collectors(config)
-    all_sessions = []
-    for c in collectors:
-        sessions = c.collect(days=config.default_days)
-        console.print(f"  [dim]{c.agent_name}: {len(sessions)} sessions[/dim]")
-        all_sessions.extend(sessions)
-
-    stats = aggregate(all_sessions, config)
-    safe_stats = sanitize(stats, config)
-
-    if dry_run:
-        console.print(preview(safe_stats))
-        return
-
-    payload_json = safe_stats.model_dump_json(indent=2)
+    payload_json = json.dumps(public_payload(stats, config), indent=2)
 
     gist_data = {
         "description": "vibe-clock stats — AI coding agent usage",
@@ -437,6 +441,115 @@ def push(dry_run: bool, days: int | None) -> None:
 
 
 @cli.command()
+@click.option("--dry-run", is_flag=True, help="Preview the public allowlist without pushing.")
+@click.option("--days", "-d", default=None, type=click.IntRange(1, 365))
+def push(dry_run: bool, days: int | None) -> None:
+    """Update a public share previously enabled with `vibe-clock share`."""
+    config = load_config()
+    if days is not None:
+        config.privacy.public_days = days
+
+    if not dry_run and not config.privacy.public_sharing_enabled:
+        console.print(
+            "[yellow]Public sharing is disabled. Preview with 'vibe-clock push --dry-run', "
+            "then opt in with 'vibe-clock share'.[/yellow]"
+        )
+        return
+
+    stats = _collect_public_stats(config)
+    if dry_run:
+        console.print(preview(stats, config))
+        return
+
+    _publish_public_stats(config, stats)
+
+
+@cli.command()
+@click.option("--days", default=7, type=click.IntRange(1, 365), show_default=True)
+@click.option("--daily-activity/--no-daily-activity", default=False)
+@click.option("--message-counts/--no-message-counts", default=False)
+@click.option("--token-counts/--no-token-counts", default=False)
+@click.option("--time-patterns/--no-time-patterns", default=False)
+@click.option("--project-aliases/--no-project-aliases", default=False)
+@click.option("--yes", "assume_yes", is_flag=True, help="Skip the confirmation prompt.")
+def share(
+    days: int,
+    daily_activity: bool,
+    message_counts: bool,
+    token_counts: bool,
+    time_patterns: bool,
+    project_aliases: bool,
+    assume_yes: bool,
+) -> None:
+    """Explicitly opt in to a public GitHub profile share."""
+    config = load_config()
+    if config.github.gist_id and not config.privacy.public_sharing_enabled:
+        console.print(
+            "[yellow]A legacy public Gist is configured. Run 'vibe-clock unshare' first "
+            "to delete its revision history, then run 'vibe-clock share' again.[/yellow]"
+        )
+        return
+    config.privacy.public_days = days
+    config.privacy.share_daily_activity = daily_activity
+    config.privacy.share_message_counts = message_counts
+    config.privacy.share_token_counts = token_counts
+    config.privacy.share_time_patterns = time_patterns
+    config.privacy.share_project_aliases = project_aliases
+
+    stats = _collect_public_stats(config)
+    console.print(preview(stats, config))
+    if not assume_yes and not click.confirm(
+        "Publish this snapshot to a public GitHub Gist? Updates remain in Gist revision history"
+    ):
+        console.print("[yellow]Public sharing remains disabled.[/yellow]")
+        return
+
+    config.privacy.public_sharing_enabled = True
+    _publish_public_stats(config, stats)
+    save_config(config)
+    console.print("[green]Public sharing enabled. Future scheduled pushes use this allowlist.[/green]")
+
+
+@cli.command()
+@click.option("--yes", "assume_yes", is_flag=True, help="Skip the confirmation prompt.")
+def unshare(assume_yes: bool) -> None:
+    """Delete the public Gist and disable future public updates."""
+    import httpx
+
+    config = load_config()
+    gist_id = config.github.gist_id
+    if not gist_id:
+        config.privacy.public_sharing_enabled = False
+        save_config(config)
+        console.print("[yellow]No public Gist is configured. Public sharing is disabled.[/yellow]")
+        return
+    if not config.github.token:
+        console.print("[red]No GitHub token configured; cannot delete the public Gist.[/red]")
+        sys.exit(1)
+    if not assume_yes and not click.confirm(
+        "Delete the public Gist and all of its revisions? Profile SVG commits are not removed"
+    ):
+        return
+
+    response = httpx.delete(
+        f"https://api.github.com/gists/{gist_id}",
+        headers={
+            "Authorization": f"token {config.github.token}",
+            "Accept": "application/vnd.github+json",
+        },
+        timeout=30,
+    )
+    if response.status_code != 204:
+        console.print(f"[red]GitHub API error ({response.status_code}): {response.text}[/red]")
+        sys.exit(1)
+
+    config.github.gist_id = ""
+    config.privacy.public_sharing_enabled = False
+    save_config(config)
+    console.print("[green]Public Gist deleted and future public updates disabled.[/green]")
+
+
+@cli.command()
 @click.option(
     "--interval",
     type=click.Choice(["hourly", "daily", "weekly"]),
@@ -461,6 +574,9 @@ def schedule(interval: str, run_time: str | None, force: bool) -> None:
     if not config.github.token:
         console.print("[red]No GitHub token configured. Run 'vibe-clock init' first.[/red]")
         sys.exit(1)
+    if not config.privacy.public_sharing_enabled:
+        console.print("[yellow]Run 'vibe-clock share' before scheduling public updates.[/yellow]")
+        return
 
     if not re.match(r"^\d{1,2}:\d{2}$", run_time):
         console.print("[red]Invalid time format. Use HH:MM (e.g. 08:00, 23:30).[/red]")

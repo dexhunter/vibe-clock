@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from datetime import date, datetime, timezone
 
 from pydantic import BaseModel, Field
 
@@ -68,8 +68,9 @@ class ProjectBreakdown(BaseModel):
 class AgentStats(BaseModel):
     """Top-level aggregated stats — this is what gets pushed to the gist."""
 
-    generated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     days_covered: int = 30
+    active_days: int = 0
     total_sessions: int = 0
     total_messages: int = 0
     total_minutes: float = 0.0

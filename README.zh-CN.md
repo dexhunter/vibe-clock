@@ -13,11 +13,6 @@
 </p>
 <p align="center">
   <img src="https://raw.githubusercontent.com/dexhunter/dexhunter/master/images/vibe-clock-donut.svg" alt="模型使用情况" width="400" />
-  <img src="https://raw.githubusercontent.com/dexhunter/dexhunter/master/images/vibe-clock-token-bars.svg" alt="各模型 Token 用量" width="400" />
-</p>
-<p align="center">
-  <img src="https://raw.githubusercontent.com/dexhunter/dexhunter/master/images/vibe-clock-hourly.svg" alt="每小时活动" width="400" />
-  <img src="https://raw.githubusercontent.com/dexhunter/dexhunter/master/images/vibe-clock-weekly.svg" alt="每周活动" width="400" />
 </p>
 
 ---
@@ -39,19 +34,15 @@ vibe-clock summary       # 在终端查看你的统计数据
 
 ## 隐私与安全
 
-**你的代码永远不会离开你的设备。** vibe-clock 仅从本地 JSONL 日志中读取会话元数据（时间戳、Token 计数、模型名称）。在任何数据被推送之前：
+**只有在你明确运行 `vibe-clock share` 后，数据才会离开本机。** 默认公开资料只包含最近 7 个完整 UTC 日的：
 
-1. **清洗器会剥离所有个人身份信息** — 文件路径、项目名称、用户名和代码都会被移除（[`sanitizer.py`](vibe_clock/sanitizer.py)）
-2. **项目名称被匿名化** — 真实名称变为"Project A"、"Project B"
-3. **`--dry-run` 让你预先检查** 将要推送的确切内容
+- 会话数和活跃天数
+- 已知代理名称
+- OpenAI、Claude、Gemini 等标准化模型系列
 
-**会被推送的内容**（到你自己的公开 gist）：
-- 会话次数、消息数量、持续时间
-- 每个模型的 Token 使用总量
-- 模型和代理名称
-- 每日活动汇总
+公开数据由固定白名单生成。精确日期、消息数、Token 数、时间分布和匿名项目别名都必须单独选择。
 
-**永远不会被推送的内容**：文件路径、项目名称、消息内容、代码片段、git 信息或任何个人身份信息。
+**永远不会公开**：路径、真实项目名称、提示词、回复、代码、git 信息、会话 ID、主机信息、持续时间、原始时间戳和精确模型 ID。`vibe-clock unshare` 会删除公开 Gist 并停止后续更新。
 
 ## 可配置图表
 
@@ -59,7 +50,7 @@ vibe-clock summary       # 在终端查看你的统计数据
 
 ```bash
 vibe-clock render --type card,donut           # 仅生成这两个
-vibe-clock render --type all                  # 全部 7 个图表（默认）
+vibe-clock render --type all                  # 全部 7 个图表
 ```
 
 | 图表 | 文件 | 描述 |
@@ -76,10 +67,11 @@ vibe-clock render --type all                  # 全部 7 个图表（默认）
 
 添加到你的 `<username>/<username>` 个人主页仓库，即可每日自动更新 SVG 图表。
 
-### 1. 推送你的统计数据
+### 1. 预览并明确选择公开
 
 ```bash
-vibe-clock push          # 创建一个包含清洗后数据的公开 gist
+vibe-clock push --dry-run
+vibe-clock share         # 确认后创建公开 gist
 # 记下输出的 gist ID
 ```
 
@@ -113,9 +105,7 @@ jobs:
 
 ```html
 <img src="images/vibe-clock-card.svg" alt="Vibe Clock Stats" />
-<img src="images/vibe-clock-heatmap.svg" alt="Activity Heatmap" />
 <img src="images/vibe-clock-donut.svg" alt="Model Usage" />
-<img src="images/vibe-clock-bars.svg" alt="Projects" />
 ```
 
 ### 5. 运行
@@ -129,7 +119,7 @@ jobs:
 | `gist_id` | *必填* | 包含 `vibe-clock-data.json` 的 Gist ID |
 | `theme` | `dark` | `dark` 或 `light` |
 | `output_dir` | `./images` | SVG 文件输出目录 |
-| `chart_types` | `all` | 逗号分隔：`card,heatmap,donut,bars,token_bars,hourly,weekly` 或 `all` |
+| `chart_types` | `card,donut` | 逗号分隔：`card,heatmap,donut,bars,token_bars,hourly,weekly` 或 `all` |
 | `commit` | `true` | 自动提交生成的 SVG |
 | `commit_message` | `chore: update vibe-clock stats` | 提交信息 |
 
@@ -138,7 +128,7 @@ jobs:
 ```
 你的设备（本地）                GitHub
 ─────────                      ──────
-vibe-clock push  ──▶  Gist（清洗后的 JSON）
+vibe-clock share ──▶  Gist（白名单 JSON）
                      │
                      └──▶  workflow_dispatch
                               │
@@ -165,8 +155,10 @@ vibe-clock push  ──▶  Gist（清洗后的 JSON）
 | `vibe-clock status` | 显示当前配置和连接状态 |
 | `vibe-clock render` | 在本地生成 SVG 可视化图表 |
 | `vibe-clock export` | 导出原始统计数据为 JSON |
-| `vibe-clock push` | 推送清洗后的统计数据到 GitHub gist 并触发个人主页仓库渲染 |
-| `vibe-clock push --dry-run` | 预览将要推送的内容 |
+| `vibe-clock share` | 预览、确认并启用公开 GitHub Gist |
+| `vibe-clock push` | 更新已明确启用的公开分享 |
+| `vibe-clock push --dry-run` | 预览精确的公开白名单 |
+| `vibe-clock unshare` | 删除公开 Gist 并停止后续更新 |
 | `vibe-clock schedule` | 自动定时推送（launchd / systemd / cron） |
 | `vibe-clock unschedule` | 移除定时推送任务 |
 
