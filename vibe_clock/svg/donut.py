@@ -6,7 +6,7 @@ import math
 from html import escape
 
 from ..formatting import format_number
-from ..models import AgentStats
+from ..models import AgentStats, ModelBreakdown
 
 _PALETTE = [
     "#58a6ff", "#3fb950", "#d29922", "#f85149",
@@ -22,7 +22,7 @@ def render_donut(stats: AgentStats, theme: str = "dark") -> str:
     title_color = "#58a6ff" if theme == "dark" else "#0969da"
 
     # Filter out placeholder/unknown models
-    models = [m for m in stats.models if m.model not in ("unknown", "<synthetic>")]
+    models = _display_models(stats)
     if not models:
         return _empty_donut(bg, border, text_color, title_color)
 
@@ -34,7 +34,7 @@ def render_donut(stats: AgentStats, theme: str = "dark") -> str:
     segments = []
     angle = -90  # Start at top
 
-    for i, m in enumerate(models[:8]):  # Max 8 segments
+    for i, m in enumerate(models):
         pct = m.session_count / total if total else 0
         sweep = pct * 360
 
@@ -52,7 +52,7 @@ def render_donut(stats: AgentStats, theme: str = "dark") -> str:
 
     # Legend
     legend_items = []
-    for i, m in enumerate(models[:8]):
+    for i, m in enumerate(models):
         color = _PALETTE[i % len(_PALETTE)]
         y = 55 + i * 22
         pct = m.session_count / total * 100 if total else 0
@@ -68,7 +68,7 @@ def render_donut(stats: AgentStats, theme: str = "dark") -> str:
     segments_str = "\n    ".join(segments)
     legend_str = "\n    ".join(legend_items)
     width = 480
-    height = max(260, 55 + len(models[:8]) * 22 + 20)
+    height = max(260, 55 + len(models) * 22 + 20)
 
     return f'''<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">
   <rect width="{width - 2}" height="{height - 2}" x="1" y="1" rx="4.5" fill="{bg}" stroke="{border}"/>
@@ -81,6 +81,26 @@ def render_donut(stats: AgentStats, theme: str = "dark") -> str:
     {legend_str}
   </g>
 </svg>'''
+
+
+def _display_models(stats: AgentStats) -> list[ModelBreakdown]:
+    """Limit the chart to eight complete categories without dropping sessions."""
+    models = [
+        model.model_copy(deep=True)
+        for model in stats.models
+        if model.model not in ("unknown", "<synthetic>")
+    ]
+    if len(models) <= 8:
+        return models
+
+    shown = models[:7]
+    overflow_sessions = sum(model.session_count for model in models[7:])
+    existing_other = next((model for model in shown if model.model == "Other"), None)
+    if existing_other is not None:
+        existing_other.session_count += overflow_sessions
+    else:
+        shown.append(ModelBreakdown(model="Other", session_count=overflow_sessions))
+    return shown
 
 
 def _arc_path(

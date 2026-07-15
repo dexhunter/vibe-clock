@@ -20,6 +20,12 @@ def test_claude_code_collector(tmp_path: Path) -> None:
     records = [
         {
             "sessionId": "sess-001",
+            "timestamp": "2026-02-10T09:59:00Z",
+            "type": "user",
+            "message": {"content": "hello"},
+        },
+        {
+            "sessionId": "sess-001",
             "timestamp": "2026-02-10T10:00:00Z",
             "type": "assistant",
             "message": {
@@ -53,6 +59,13 @@ def test_claude_code_collector(tmp_path: Path) -> None:
             "type": "progress",
             "message": {},
         },
+        # Tool results use the user role but are not human messages
+        {
+            "sessionId": "sess-001",
+            "timestamp": "2026-02-10T10:03:00Z",
+            "type": "user",
+            "message": {"content": [{"type": "tool_result", "content": "ok"}]},
+        },
     ]
     jsonl.write_text("\n".join(json.dumps(r) for r in records))
 
@@ -66,7 +79,7 @@ def test_claude_code_collector(tmp_path: Path) -> None:
     assert s.session_id == "sess-001"
     assert s.agent == "claude_code"
     assert s.model == "claude-opus-4-6"
-    assert s.message_count == 2
+    assert s.message_count == 3
     assert s.tokens.input_tokens == 180
     assert s.tokens.output_tokens == 90
     assert s.tokens.cache_read_tokens == 350
@@ -362,7 +375,7 @@ def test_opencode_collector(tmp_path: Path) -> None:
     assert s.session_id == "ses_001"
     assert s.agent == "opencode"
     assert s.model == "minimax-m2.1"
-    assert s.message_count == 1  # Only assistant messages counted
+    assert s.message_count == 2  # User message + assistant response
     assert s.tokens.input_tokens == 300
     assert s.tokens.output_tokens == 100
     assert s.tokens.cache_read_tokens == 50

@@ -112,6 +112,23 @@ def test_donut_empty() -> None:
     assert "No data" in svg
 
 
+def test_donut_groups_models_beyond_eight() -> None:
+    stats = AgentStats(
+        models=[
+            ModelBreakdown(model=f"model-{index}", session_count=1)
+            for index in range(9)
+        ]
+    )
+
+    svg = render_donut(stats)
+
+    assert svg.count("<path") == 8
+    assert "model-7" not in svg
+    assert "model-8" not in svg
+    assert "Other" in svg
+    assert ">9</text>" in svg
+
+
 def test_bars_renders_valid_svg() -> None:
     svg = render_bars(_sample_stats(), theme="dark")
     assert svg.startswith("<svg")

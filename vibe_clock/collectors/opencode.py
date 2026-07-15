@@ -77,7 +77,10 @@ class OpenCodeCollector(BaseCollector):
                 except (OSError, json.JSONDecodeError):
                     continue
 
-                if msg.get("role") == "assistant":
+                role = msg.get("role")
+                if role == "user":
+                    message_count += 1
+                elif role == "assistant":
                     message_count += 1
 
                     model_id = msg.get("modelID", "unknown")

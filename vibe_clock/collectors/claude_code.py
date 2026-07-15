@@ -54,13 +54,13 @@ class ClaudeCodeCollector(BaseCollector):
         if not session_id:
             return
 
-        # Only process assistant messages (they have token usage)
-        if record.get("type") != "assistant":
+        record_type = record.get("type")
+        if record_type == "user":
+            if not _is_human_user_message(record):
+                return
+        elif record_type != "assistant":
             return
 
-        msg = record.get("message", {})
-        usage = msg.get("usage", {})
-        model = msg.get("model", "unknown")
         timestamp_str = record.get("timestamp")
         if not timestamp_str:
             return
@@ -79,6 +79,13 @@ class ClaudeCodeCollector(BaseCollector):
         acc = sessions[session_id]
         acc.message_count += 1
         acc.timestamps.append(ts)
+
+        if record_type == "user":
+            return
+
+        msg = record.get("message", {})
+        usage = msg.get("usage", {})
+        model = msg.get("model", "unknown")
         acc.tokens.input_tokens += usage.get("input_tokens", 0)
         acc.tokens.output_tokens += usage.get("output_tokens", 0)
         acc.tokens.cache_read_tokens += usage.get("cache_read_input_tokens", 0)
@@ -87,6 +94,20 @@ class ClaudeCodeCollector(BaseCollector):
         )
         if model != "unknown":
             acc.models[model] += 1
+
+
+def _is_human_user_message(record: dict) -> bool:
+    """Exclude tool-result records that Claude stores with the user role."""
+    content = (record.get("message") or {}).get("content")
+    if isinstance(content, str):
+        return True
+    if isinstance(content, list):
+        return any(
+            isinstance(item, str)
+            or (isinstance(item, dict) and item.get("type") == "text")
+            for item in content
+        )
+    return False
 
 
 class _SessionAcc:
