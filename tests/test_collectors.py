@@ -135,10 +135,106 @@ def test_codex_collector(tmp_path: Path) -> None:
     assert s.session_id == "abc123"
     assert s.agent == "codex"
     assert s.model == "gpt-5.1-codex"
-    assert s.tokens.input_tokens == 500
+    # Codex reports cached input as a subset of input_tokens. Keep the cache
+    # breakdown without counting it twice in TokenUsage.total.
+    assert s.tokens.input_tokens == 400
     assert s.tokens.output_tokens == 200
     assert s.tokens.cache_read_tokens == 100
+    assert s.tokens.total == 700
     assert s.message_count == 2  # 1 user_message + 1 assistant response_item
+
+
+def test_codex_collector_deduplicates_copied_fork_snapshots(
+    tmp_path: Path,
+) -> None:
+    sessions_dir = tmp_path / "sessions" / "2030" / "01" / "01"
+    archived_dir = tmp_path / "archived_sessions"
+    sessions_dir.mkdir(parents=True)
+    archived_dir.mkdir()
+
+    copied = {
+        "timestamp": "2030-01-01T10:01:00Z",
+        "type": "event_msg",
+        "payload": {
+            "type": "token_count",
+            "info": {
+                "model": "gpt-other",
+                "last_token_usage": {
+                    "input_tokens": 100,
+                    "cached_input_tokens": 20,
+                    "output_tokens": 10,
+                    "total_tokens": 110,
+                },
+                "total_token_usage": {
+                    "input_tokens": 100,
+                    "cached_input_tokens": 20,
+                    "output_tokens": 10,
+                    "total_tokens": 110,
+                },
+            },
+        },
+    }
+    unique = {
+        "timestamp": "2030-01-01T10:02:00Z",
+        "type": "event_msg",
+        "payload": {
+            "type": "token_count",
+            "info": {
+                "model": "gpt-test",
+                "last_token_usage": {
+                    "input_tokens": 50,
+                    "cached_input_tokens": 40,
+                    "output_tokens": 5,
+                    "total_tokens": 55,
+                },
+                "total_token_usage": {
+                    "input_tokens": 150,
+                    "cached_input_tokens": 60,
+                    "output_tokens": 15,
+                    "total_tokens": 165,
+                },
+            },
+        },
+    }
+    parent = [
+        {
+            "timestamp": "2030-01-01T10:00:00Z",
+            "type": "session_meta",
+            "payload": {"id": "parent", "cwd": "/tmp/project"},
+        },
+        copied,
+    ]
+    child = [
+        {
+            "timestamp": "2030-01-01T10:00:30Z",
+            "type": "session_meta",
+            "payload": {
+                "id": "child",
+                "forked_from_id": "parent",
+                "cwd": "/tmp/project",
+            },
+        },
+        copied,
+        unique,
+    ]
+    (sessions_dir / "rollout-parent.jsonl").write_text(
+        "\n".join(json.dumps(record) for record in parent)
+    )
+    (archived_dir / "rollout-child.jsonl").write_text(
+        "\n".join(json.dumps(record) for record in child)
+    )
+
+    sessions = CodexCollector(data_dir=tmp_path).collect(days=365)
+
+    assert len(sessions) == 2
+    combined = sum(session.tokens.total for session in sessions)
+    assert combined == 165
+    by_model: dict[str, int] = {}
+    for session in sessions:
+        for model, usage in session.model_tokens.items():
+            by_model[model] = by_model.get(model, 0) + usage.total
+    assert by_model == {"gpt-other": 110, "gpt-test": 55}
+    assert sum(by_model.values()) == combined
 
 
 def test_gemini_cli_collector(tmp_path: Path) -> None:

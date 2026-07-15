@@ -21,7 +21,11 @@ def render_token_bars(stats: AgentStats, theme: str = "dark") -> str:
     title_color = "#58a6ff" if theme == "dark" else "#0969da"
     bar_bg = "#21262d" if theme == "dark" else "#f6f8fa"
 
-    models = [m for m in stats.models if m.model not in ("unknown", "<synthetic>")]
+    models = sorted(
+        (m for m in stats.models if m.model not in ("unknown", "<synthetic>")),
+        key=lambda model: model.tokens.total,
+        reverse=True,
+    )
     if not models:
         return _empty(bg, border, text_color, title_color)
 

@@ -75,12 +75,18 @@ def aggregate(sessions: list[Session], config: Config) -> AgentStats:
         acc.total_minutes += dur
         _add_tokens(acc.tokens, s.tokens)
 
-        # Model
+        # Model-level activity stays attached to the session's primary model,
+        # while collectors that provide per-model token splits keep tokens on
+        # the model that actually consumed them.
         macc = model_map[s.model]
         macc.session_count += 1
         macc.message_count += s.message_count
         macc.total_minutes += dur
-        _add_tokens(macc.tokens, s.tokens)
+        if s.model_tokens:
+            for model, tokens in s.model_tokens.items():
+                _add_tokens(model_map[model].tokens, tokens)
+        else:
+            _add_tokens(macc.tokens, s.tokens)
 
         # Project
         key = (s.project, s.agent)

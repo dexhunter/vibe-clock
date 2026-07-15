@@ -32,6 +32,7 @@ class Session(BaseModel):
     project: str = "unknown"
     message_count: int = 0
     tokens: TokenUsage = Field(default_factory=TokenUsage)
+    model_tokens: dict[str, TokenUsage] = Field(default_factory=dict)
 
     @property
     def duration_minutes(self) -> float:
