@@ -9,6 +9,7 @@ from ..models import AgentStats
 _AGENT_COLORS = {
     "claude_code": "#58a6ff",
     "codex": "#3fb950",
+    "gemini_cli": "#8957e5",
     "opencode": "#d29922",
 }
 

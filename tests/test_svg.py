@@ -136,6 +136,22 @@ def test_bars_renders_valid_svg() -> None:
     assert "Project A" in svg
 
 
+def test_bars_uses_gemini_color() -> None:
+    stats = AgentStats(
+        projects=[
+            ProjectBreakdown(
+                project="Project Gemini",
+                agent="gemini_cli",
+                session_count=1,
+            )
+        ]
+    )
+
+    svg = render_bars(stats, theme="dark")
+
+    assert 'fill="#8957e5"' in svg
+
+
 def test_bars_empty() -> None:
     svg = render_bars(AgentStats(), theme="dark")
     assert "No project data" in svg
