@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 from datetime import date
+import xml.etree.ElementTree as ET
+
+import pytest
 
 from vibe_clock.models import (
     AgentStats,
@@ -15,6 +18,9 @@ from vibe_clock.svg.bars import render_bars
 from vibe_clock.svg.card import render_card
 from vibe_clock.svg.donut import render_donut
 from vibe_clock.svg.heatmap import render_heatmap
+from vibe_clock.svg.hourly import render_hourly
+from vibe_clock.svg.token_bars import render_token_bars
+from vibe_clock.svg.weekly import render_weekly
 
 
 def _sample_stats() -> AgentStats:
@@ -168,3 +174,40 @@ def test_bars_uses_gemini_color() -> None:
 def test_bars_empty() -> None:
     svg = render_bars(AgentStats(), theme="dark")
     assert "No project data" in svg
+
+
+@pytest.mark.parametrize("theme", ["dark", "light"])
+@pytest.mark.parametrize("renderer", [render_card, render_donut, render_token_bars, render_hourly, render_weekly])
+def test_profile_charts_are_self_contained_and_escape_labels(renderer, theme) -> None:
+    stats = _sample_stats()
+    stats.favorite_model = '<model & "family">'
+    stats.models[0].model = stats.favorite_model
+    svg = renderer(stats, theme=theme)
+    root = ET.fromstring(svg)
+    ns = {"s": "http://www.w3.org/2000/svg"}
+    assert root.find("s:title", ns) is not None
+    assert root.find("s:desc", ns) is not None
+    assert root.find(".//s:script", ns) is None
+    assert root.find(".//s:foreignObject", ns) is None
+    css = root.find("s:style", ns).text
+    assert "prefers-reduced-motion: no-preference" in css
+    assert "infinite" not in css
+    if renderer in (render_card, render_donut, render_token_bars):
+        assert stats.favorite_model in "".join(root.itertext())
+
+
+def test_single_model_donut_has_same_ring_bounds_as_segments() -> None:
+    svg = render_donut(AgentStats(models=[ModelBreakdown(model="Only", session_count=1)]))
+    root = ET.fromstring(svg)
+    circle = root.find(".//{http://www.w3.org/2000/svg}circle")
+    radius, stroke = float(circle.attrib["r"]), float(circle.attrib["stroke-width"])
+    assert radius + stroke / 2 == 76
+    assert radius - stroke / 2 == 55
+
+
+def test_zero_token_model_has_no_visible_usage_bar() -> None:
+    svg = render_token_bars(AgentStats(models=[ModelBreakdown(model="Zero")]))
+    root = ET.fromstring(svg)
+    bars = [element for element in root.iter() if element.get("class") == "vc-x"]
+    assert len(bars) == 1
+    assert float(bars[0].attrib["width"]) == 0

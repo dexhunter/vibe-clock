@@ -6,65 +6,29 @@ from html import escape
 
 from ..formatting import format_hours
 from ..models import AgentStats
-
-_DARK = {
-    "bg": "#0d1117",
-    "border": "#30363d",
-    "title": "#58a6ff",
-    "text": "#c9d1d9",
-    "muted": "#8b949e",
-    "icon": "#58a6ff",
-}
-_LIGHT = {
-    "bg": "#ffffff",
-    "border": "#d0d7de",
-    "title": "#0969da",
-    "text": "#1f2328",
-    "muted": "#656d76",
-    "icon": "#0969da",
-}
+from .style import colors, frame, motion
 
 
 def render_card(stats: AgentStats, theme: str = "dark") -> str:
-    c = _DARK if theme == "dark" else _LIGHT
-
-    # Every value here is a field the public payload always carries, so none of
-    # them can silently fall back to a plausible-looking default.
-    #
-    # "Agent Time", not "Active Time": the number is wall-clock time during
-    # which an agent was emitting events, which is not the same as time you
-    # spent. An autonomous run working through the night is agent time and no
-    # log can tell whether you were at the keyboard, so the label says what is
-    # actually measured rather than implying a person was there.
-    rows = [
+    c = colors(theme)
+    # Agent time measures emitting agents, not a person's keyboard activity.
+    metrics = [
         ("Agent Time", format_hours(stats.total_minutes)),
         ("Sessions", str(stats.total_sessions)),
         ("Active Days", str(stats.active_days)),
-        ("Top Model Family", escape(stats.favorite_model) if stats.favorite_model else "—"),
+        ("Top Model Family", stats.favorite_model or "—"),
     ]
-
-    row_svgs = []
-    for i, (label, value) in enumerate(rows):
-        row_y = 52 + i * 22
-        row_svgs.append(
-            f'<text x="20" y="{row_y}" fill="{c["muted"]}" '
-            f'font-size="12">{label}:</text>'
-            f'<text x="170" y="{row_y}" fill="{c["text"]}" '
-            f'font-size="12" font-weight="600">{value}</text>'
+    body = []
+    for i, (label, value) in enumerate(metrics):
+        x, y = 22 + (i % 2) * 232, 74 + (i // 2) * 78
+        short_value = value if len(value) <= 21 else value[:20] + "…"
+        size = 24 if len(short_value) <= 14 else 15
+        body.append(
+            f'<g {motion("reveal", i * 2)}><title>{escape(label)}: {escape(value)}</title>'
+            f'<rect x="{x}" y="{y}" width="219" height="66" rx="9" fill="{c["panel"]}"/>'
+            f'<text x="{x + 14}" y="{y + 21}" fill="{c["muted"]}" font-size="11">{label}</text>'
+            f'<text x="{x + 14}" y="{y + 49}" fill="{c["blue"] if i == 0 else c["text"]}" '
+            f'font-size="{size}" font-weight="650">{escape(short_value)}</text></g>'
         )
-
-    body = "\n    ".join(row_svgs)
-    footer = f"Last {stats.days_covered} complete days · Updated {stats.generated_at.date()}"
-    return f'''<svg xmlns="http://www.w3.org/2000/svg" width="495" height="158" viewBox="0 0 495 158">
-  <rect width="493" height="156" x="1" y="1" rx="4.5" fill="{c["bg"]}" stroke="{c["border"]}"/>
-  <text x="20" y="30" fill="{c["title"]}" font-size="16" font-weight="700" font-family="Arial, Helvetica, sans-serif">
-    ⏱ Vibe Clock Stats
-  </text>
-  <line x1="20" y1="38" x2="475" y2="38" stroke="{c["border"]}" stroke-width="0.5"/>
-  <g font-family="Courier New, Courier, monospace">
-    {body}
-  </g>
-  <text x="20" y="146" fill="{c["muted"]}" font-size="10" font-family="Arial, Helvetica, sans-serif">
-    {footer}
-  </text>
-</svg>'''
+    subtitle = f"Last {stats.days_covered} complete days · Updated {stats.generated_at.date()}"
+    return frame(495, 236, "Vibe Clock Stats", subtitle, theme) + "\n".join(body) + "</svg>"

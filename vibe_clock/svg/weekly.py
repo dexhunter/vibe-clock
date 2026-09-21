@@ -7,18 +7,16 @@ from html import escape
 
 from ..formatting import format_number
 from ..models import AgentStats
+from .style import colors, frame, motion
 
 _DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
 
 def render_weekly(stats: AgentStats, theme: str = "dark") -> str:
-    bg = "#0d1117" if theme == "dark" else "#ffffff"
-    border = "#30363d" if theme == "dark" else "#d0d7de"
-    text_color = "#c9d1d9" if theme == "dark" else "#1f2328"
-    muted = "#8b949e" if theme == "dark" else "#656d76"
-    title_color = "#58a6ff" if theme == "dark" else "#0969da"
-    bar_color = "#3fb950" if theme == "dark" else "#1a7f37"
-    bar_bg = "#21262d" if theme == "dark" else "#f6f8fa"
+    c = colors(theme)
+    muted = c["muted"]
+    bar_bg = c["panel"]
+    text_color = c["text"]
 
     # Aggregate daily data by day-of-week (0=Mon, 6=Sun)
     dow_sessions: dict[int, int] = defaultdict(int)
@@ -29,7 +27,7 @@ def render_weekly(stats: AgentStats, theme: str = "dark") -> str:
     max_sessions = max(dow_sessions.values()) if dow_sessions else 1
 
     width = 495
-    chart_top = 45
+    chart_top = 80
     chart_height = 120
     chart_left = 50
     chart_right = width - 20
@@ -56,7 +54,7 @@ def render_weekly(stats: AgentStats, theme: str = "dark") -> str:
         if bar_h > 0:
             bars.append(
                 f'<rect x="{x:.1f}" y="{y:.1f}" width="{bar_w:.1f}" '
-                f'height="{bar_h:.1f}" rx="3" fill="{bar_color}">'
+                f'height="{bar_h:.1f}" rx="3" fill="url(#vc-green)" {motion("y", i)}>'
                 f'<title>{escape(_DAYS[i])}: {sessions} sessions</title></rect>'
             )
             # Count label above bar
@@ -76,13 +74,8 @@ def render_weekly(stats: AgentStats, theme: str = "dark") -> str:
     bars_str = "\n    ".join(bars)
     labels_str = "\n    ".join(labels)
 
-    return f'''<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">
-  <rect width="{width - 2}" height="{height - 2}" x="1" y="1" rx="4.5" fill="{bg}" stroke="{border}"/>
-  <text x="20" y="28" fill="{title_color}" font-size="14" font-weight="700" font-family="Arial, Helvetica, sans-serif">
-    Activity by Day of Week
-  </text>
-  <g font-family="Courier New, Courier, monospace">
-    {bars_str}
-    {labels_str}
-  </g>
+    subtitle = f"Sessions · last {stats.days_covered} complete days"
+    return frame(width, height, "Activity by Day of Week", subtitle, theme) + f'''
+{bars_str}
+{labels_str}
 </svg>'''

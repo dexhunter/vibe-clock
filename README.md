@@ -117,6 +117,8 @@ The old definition was last-event-minus-first-event per session, summed. That bi
 
 ## Charts
 
+The summary card, model donut, token bars, and activity charts use a brief entrance animation. They stay still when reduced motion is enabled and remain readable in viewers without animation support.
+
 ```bash
 vibe-clock render --type card,donut       # write SVGs to the current directory
 vibe-clock render --type all
