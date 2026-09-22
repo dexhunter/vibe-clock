@@ -191,9 +191,23 @@ def test_profile_charts_are_self_contained_and_escape_labels(renderer, theme) ->
     assert root.find(".//s:foreignObject", ns) is None
     css = root.find("s:style", ns).text
     assert "prefers-reduced-motion: no-preference" in css
-    assert "infinite" not in css
+    assert "5s ease-in-out infinite" in css
+    assert "scaleX" not in css and "scaleY" not in css
+    assert "opacity: 0.65" in css  # Data remains visible throughout each cycle.
     if renderer in (render_card, render_donut, render_token_bars):
         assert stats.favorite_model in "".join(root.itertext())
+
+
+@pytest.mark.parametrize("renderer", [render_card, render_donut, render_token_bars, render_hourly, render_weekly])
+def test_profile_chart_labels_stay_readable_and_below_section_headings(renderer) -> None:
+    root = ET.fromstring(renderer(_sample_stats()))
+    ns = {"s": "http://www.w3.org/2000/svg"}
+    for label in root.findall(".//s:text", ns):
+        assert float(label.attrib["font-size"]) <= 18
+        assert label.get("class") is None
+    for animated in root.iter():
+        if animated.get("class") in {"vc-reveal", "vc-x", "vc-y"}:
+            assert animated.find(".//s:text", ns) is None
 
 
 def test_single_model_donut_has_same_ring_bounds_as_segments() -> None:

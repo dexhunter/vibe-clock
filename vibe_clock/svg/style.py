@@ -12,8 +12,8 @@ def colors(theme: str) -> dict[str, str]:
 
 
 def motion(kind: str, index: int = 0) -> str:
-    """Keep even very long lists below one second of total entrance motion."""
-    return f'class="vc-{kind}" style="animation-delay:{min(index, 12) * 30}ms"'
+    """Stagger repeating highlights without delaying long lists indefinitely."""
+    return f'class="vc-{kind}" style="animation-delay:{min(index, 12) * 120}ms"'
 
 
 def frame(width: int, height: int, title: str, subtitle: str, theme: str) -> str:
@@ -34,17 +34,13 @@ def frame(width: int, height: int, title: str, subtitle: str, theme: str) -> str
   </defs>
   <style>
     text {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; }}
-    .vc-x, .vc-y {{ transform-box: fill-box; }}
-    .vc-x {{ transform-origin: left center; }}
-    .vc-y {{ transform-origin: center bottom; }}
     @media (prefers-reduced-motion: no-preference) {{
-      .vc-x {{ animation: vc-grow-x 600ms cubic-bezier(.22,1,.36,1) backwards; }}
-      .vc-y {{ animation: vc-grow-y 600ms cubic-bezier(.22,1,.36,1) backwards; }}
-      .vc-reveal {{ animation: vc-reveal 450ms ease-out backwards; }}
+      .vc-x, .vc-y, .vc-reveal {{ animation: vc-highlight 5s ease-in-out infinite both; }}
     }}
-    @keyframes vc-grow-x {{ from {{ transform: scaleX(0); }} to {{ transform: scaleX(1); }} }}
-    @keyframes vc-grow-y {{ from {{ transform: scaleY(0); }} to {{ transform: scaleY(1); }} }}
-    @keyframes vc-reveal {{ from {{ opacity: 0; }} to {{ opacity: 1; }} }}
+    @keyframes vc-highlight {{
+      0%, 100% {{ opacity: 0.65; }}
+      35%, 65% {{ opacity: 1; }}
+    }}
   </style>
   <rect x="1" y="1" width="{width - 2}" height="{height - 2}" rx="14" fill="{c['bg']}" stroke="{c['border']}"/>
   <rect x="22" y="23" width="3" height="17" rx="1.5" fill="{c['blue']}"/>

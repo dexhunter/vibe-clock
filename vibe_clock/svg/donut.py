@@ -48,7 +48,7 @@ def render_donut(stats: AgentStats, theme: str = "dark") -> str:
     # Center text
     center = (
         f'<text x="{cx}" y="{cy - 5}" text-anchor="middle" '
-        f'fill="{text_color}" font-size="27" font-weight="700">{format_number(total)}</text>'
+        f'fill="{text_color}" font-size="18" font-weight="700">{format_number(total)}</text>'
         f'<text x="{cx}" y="{cy + 12}" text-anchor="middle" '
         f'fill="{muted}" font-size="11">sessions</text>'
     )
