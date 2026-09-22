@@ -1,5 +1,6 @@
 """Shared presentation for the profile charts; no scripts or external assets."""
 
+from collections.abc import Iterable
 from html import escape
 
 
@@ -12,8 +13,19 @@ def colors(theme: str) -> dict[str, str]:
 
 
 def motion(kind: str, index: int = 0) -> str:
-    """Stagger repeating highlights without delaying long lists indefinitely."""
-    return f'class="vc-{kind}" style="animation-delay:{min(index, 12) * 120}ms"'
+    """Give a data shape a stable reference for the moving highlight."""
+    return f'id="vc-{kind}-{index}" class="vc-{kind}"'
+
+
+def sheen(kind: str, indices: Iterable[int], width: int, height: int, opacity: float = 1) -> str:
+    """Sweep a highlight over data shapes only, preserving their geometry."""
+    shapes = "".join(f'<use href="#vc-{kind}-{index}"/>' for index in indices)
+    return f'''<defs>
+  <mask id="vc-data" maskUnits="userSpaceOnUse" x="0" y="0" width="{width}" height="{height}" style="mask-type:alpha">{shapes}</mask>
+</defs>
+<g mask="url(#vc-data)" opacity="{opacity}" aria-hidden="true" pointer-events="none">
+  <rect class="vc-sweep" x="-130" y="0" width="130" height="{height}" fill="url(#vc-sheen)"/>
+</g>'''
 
 
 def frame(width: int, height: int, title: str, subtitle: str, theme: str) -> str:
@@ -31,15 +43,21 @@ def frame(width: int, height: int, title: str, subtitle: str, theme: str) -> str
       <stop stop-color="{c['green']}" stop-opacity="0.6"/>
       <stop offset="1" stop-color="{c['green']}"/>
     </linearGradient>
+    <linearGradient id="vc-sheen">
+      <stop stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
   </defs>
   <style>
     text {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; }}
+    .vc-sweep {{ opacity: 0; }}
     @media (prefers-reduced-motion: no-preference) {{
-      .vc-x, .vc-y, .vc-reveal {{ animation: vc-highlight 5s ease-in-out infinite both; }}
+      .vc-sweep {{ opacity: 1; animation: vc-sweep 3.5s linear infinite; }}
     }}
-    @keyframes vc-highlight {{
-      0%, 100% {{ opacity: 0.65; }}
-      35%, 65% {{ opacity: 1; }}
+    @keyframes vc-sweep {{
+      from {{ transform: translateX(0); }}
+      to {{ transform: translateX({width + 130}px); }}
     }}
   </style>
   <rect x="1" y="1" width="{width - 2}" height="{height - 2}" rx="14" fill="{c['bg']}" stroke="{c['border']}"/>

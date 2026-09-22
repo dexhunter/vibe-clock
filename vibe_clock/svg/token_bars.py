@@ -6,7 +6,7 @@ from html import escape
 
 from ..formatting import format_number
 from ..models import AgentStats
-from .style import colors, frame, motion
+from .style import colors, frame, motion, sheen
 
 _PALETTE = [
     "#58a6ff", "#3fb950", "#d29922", "#f85149",
@@ -60,4 +60,4 @@ def render_token_bars(stats: AgentStats, theme: str = "dark") -> str:
     rows_str = "\n    ".join(rows)
 
     subtitle = "Input + output + cached tokens"
-    return frame(width, height, "Token Usage by Model", subtitle, theme) + rows_str + "</svg>"
+    return frame(width, height, "Token Usage by Model", subtitle, theme) + rows_str + sheen("x", range(len(models)), width, height) + "</svg>"

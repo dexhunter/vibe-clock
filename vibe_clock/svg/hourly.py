@@ -6,7 +6,7 @@ from html import escape
 
 from ..formatting import format_number
 from ..models import AgentStats
-from .style import colors, frame, motion
+from .style import colors, frame, motion, sheen
 
 
 def render_hourly(stats: AgentStats, theme: str = "dark") -> str:
@@ -45,7 +45,7 @@ def render_hourly(stats: AgentStats, theme: str = "dark") -> str:
         if bar_h > 0:
             bars.append(
                 f'<rect x="{x:.1f}" y="{y:.1f}" width="{bar_w:.1f}" '
-                f'height="{bar_h:.1f}" rx="2" fill="url(#vc-blue)" {motion("y", h // 2)}>'
+                f'height="{bar_h:.1f}" rx="2" fill="url(#vc-blue)" {motion("y", h)}>'
                 f'<title>{escape(f"{h}:00")} — {count} sessions</title></rect>'
             )
 
@@ -76,4 +76,5 @@ def render_hourly(stats: AgentStats, theme: str = "dark") -> str:
 {y_labels_str}
 {bars_str}
 {labels_str}
+{sheen("y", [h for h in range(24) if hourly[h] > 0], width, height)}
 </svg>'''

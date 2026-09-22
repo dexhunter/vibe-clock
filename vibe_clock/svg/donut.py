@@ -7,7 +7,7 @@ from html import escape
 
 from ..formatting import format_number
 from ..models import AgentStats, ModelBreakdown
-from .style import colors, frame, motion
+from .style import colors, frame, motion, sheen
 
 _PALETTE = [
     "#58a6ff", "#3fb950", "#d29922", "#f85149",
@@ -74,7 +74,8 @@ def render_donut(stats: AgentStats, theme: str = "dark") -> str:
     legend_str = "\n    ".join(legend_items)
     return (
         frame(495, height, "Model Usage", "Share of sessions by model", theme)
-        + segments_str + center + legend_str + "</svg>"
+        + segments_str + center + legend_str
+        + sheen("reveal", [i for i, m in enumerate(models) if m.session_count > 0], 495, height) + "</svg>"
     )
 
 

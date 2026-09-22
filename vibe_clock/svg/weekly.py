@@ -7,7 +7,7 @@ from html import escape
 
 from ..formatting import format_number
 from ..models import AgentStats
-from .style import colors, frame, motion
+from .style import colors, frame, motion, sheen
 
 _DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
@@ -78,4 +78,5 @@ def render_weekly(stats: AgentStats, theme: str = "dark") -> str:
     return frame(width, height, "Activity by Day of Week", subtitle, theme) + f'''
 {bars_str}
 {labels_str}
+{sheen("y", [i for i in range(7) if dow_sessions.get(i, 0) > 0], width, height)}
 </svg>'''

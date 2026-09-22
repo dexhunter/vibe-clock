@@ -191,9 +191,15 @@ def test_profile_charts_are_self_contained_and_escape_labels(renderer, theme) ->
     assert root.find(".//s:foreignObject", ns) is None
     css = root.find("s:style", ns).text
     assert "prefers-reduced-motion: no-preference" in css
-    assert "5s ease-in-out infinite" in css
+    assert "3.5s linear infinite" in css
     assert "scaleX" not in css and "scaleY" not in css
-    assert "opacity: 0.65" in css  # Data remains visible throughout each cycle.
+    assert ".vc-sweep { opacity: 0; }" in css  # Motion is opt-in; data stays visible.
+    # Every highlight reference resolves to a data shape, never a label.
+    ids = {element.get("id"): element for element in root.iter() if element.get("id")}
+    for reference in root.findall(".//s:use", ns):
+        target = ids[reference.attrib["href"][1:]]
+        assert target.find(".//s:text", ns) is None
+    assert root.find('.//s:mask', ns).get('style') == 'mask-type:alpha'
     if renderer in (render_card, render_donut, render_token_bars):
         assert stats.favorite_model in "".join(root.itertext())
 
